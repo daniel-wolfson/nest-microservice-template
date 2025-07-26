@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug TypeORM Config",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/libs/providers/src/typeorm/typeorm.config.ts",
+            "console": "integratedTerminal",
+            "restart": true,
+            "runtimeArgs": ["-r", "ts-node/register", "-r", "tsconfig-paths/register"],
+            "env": {
+                "NODE_ENV": "development"
+            }
+        }
+    ]
+}

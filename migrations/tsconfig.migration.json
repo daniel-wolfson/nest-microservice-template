@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "outDir": "../dist/migrations",
+    "forceConsistentCasingInFileNames": true,
+    "strict": true
+  },
+  "include": ["*migration.ts"]
+}
