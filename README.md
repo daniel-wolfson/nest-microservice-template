@@ -60,7 +60,7 @@ yarn start:dev
 yarn start:prod
 ```
 ### Check if the process is actually listening on the expected port
-netstat -ano | findstr :30
+netstat -ano | findstr :3000
 
 ### PowerShell
 Invoke-RestMethod -Uri "http://localhost:3000/rabbitmq/status" -Method Get
