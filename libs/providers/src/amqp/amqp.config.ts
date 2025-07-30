@@ -58,11 +58,9 @@ export const amqpConfig = (configService: ConfigService): RabbitMQConfig => {
             heartbeatIntervalInSeconds: 15,
             reconnectTimeInSeconds: 30,
             connectionOptions: {
-                //connectionTimeout: 20000,
-                //authMechanism: 'PLAIN',
+                timeout: 20000,
             },
         },
-        //enableErrorMessages: true,
         prefetchCount: 10,
         channels: {
             'channel-1': {
