@@ -1,8 +1,9 @@
 {
     "version": "0.2.0",
     "configurations": [
+        
         {
-            "name": "Debug TypeORM Config",
+            "name": "Debug Login Controller",
             "type": "node",
             "request": "launch",
             "program": "${workspaceFolder}/libs/providers/src/typeorm/typeorm.config.ts",

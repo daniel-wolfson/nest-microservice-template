@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { AppModule } from './modules/app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
@@ -13,7 +13,6 @@ async function bootstrap() {
         .setTitle('Your API Title') // Set your API title
         .setDescription('The description of your API') // Set your API description
         .setVersion('1.0') // Set your API version
-        .addTag('users') // Optional: Add tags to categorize your endpoints
         .addBearerAuth() // Optional: If you use JWT authentication
         .build();
     const document = SwaggerModule.createDocument(app, config);
