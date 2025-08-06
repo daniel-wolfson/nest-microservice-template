@@ -5,7 +5,8 @@ import { DataSource, DataSourceOptions } from 'typeorm';
 import { ENTITIES } from '@lib/entities';
 import { ConfigService } from '@nestjs/config';
 
-config({ path: join(process.cwd(), '.env') });
+const environment = process.env.NODE_ENV || 'development';
+config({ path: join(process.cwd(), `.env.${environment}`) });
 Logger.log(process.cwd() + process.env.DATABASE_URL);
 
 const options = (): DataSourceOptions => {

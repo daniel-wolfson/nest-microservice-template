@@ -2,7 +2,8 @@ import { config } from 'dotenv';
 import { join } from 'path';
 import { DataSource, DataSourceOptions } from 'typeorm';
 
-config({ path: join(process.cwd(), '.env') });
+const environment = process.env.NODE_ENV || 'development';
+config({ path: join(process.cwd(), `.env.${environment}`) });
 
 const options = (): DataSourceOptions => {
     const url = process.env.DATABASE_URL;

@@ -65,6 +65,25 @@ yarn start:dev
 yarn start:prod
 ```
 
+# Development
+
+npm run start:dev
+
+# Staging
+
+npm run build:staging
+npm run start:staging
+
+# Production
+
+npm run build:prod
+npm run start:prod
+
+# Docker
+
+docker-compose -f docker-compose.development.yml up
+docker-compose -f docker-compose.production.yml up
+
 ### Check if the process is actually listening on the expected port
 
 netstat -ano | findstr :3000

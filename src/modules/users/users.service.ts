@@ -1,39 +1,54 @@
 import { Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserlDto } from './dto/update-user.dto';
+import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
 
-// This should be a real class/interface representing a user entity
 export type User = {
-    userId: number;
+    userId: string;
     username: string;
     password: string;
     email: string;
+    roles: string[];
 };
 
 @Injectable()
 export class UsersService {
-    private readonly users = [
+    private readonly users: User[] = [
         {
-            userId: 1,
+            userId: randomUUID(), // Generate GUID,
             username: 'john',
             password: 'changeme',
             email: 'john@example.com',
+            roles: ['user'],
         },
         {
-            userId: 2,
+            userId: randomUUID(), // Generate GUID,
             username: 'maria',
             password: 'guess',
             email: 'maria@example.com',
+            roles: [],
         },
     ];
 
-    async findOne(username: string): Promise<User | undefined> {
-        return this.users.find(user => user.username === username);
+    constructor() {
+        this.users = this.users.map(user => ({
+            ...user,
+            password: bcrypt.hashSync(user.password, 10),
+        }));
+    }
+
+    async findOne(email: string): Promise<User | undefined> {
+        return this.users.find(user => user.email === email);
+    }
+
+    findById(sub: any): User {
+        return this.users.find(user => user.userId === sub);
     }
 
     create(createUserDto: CreateUserDto) {
         const user = {
-            userId: this.users.length + 1,
+            userId: randomUUID(),
             ...createUserDto,
         };
         this.users.push();
