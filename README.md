@@ -65,6 +65,19 @@ yarn start:dev
 yarn start:prod
 ```
 
+# Format all files
+
+npx prettier --write "src/\*_/_.{ts,js,json}"
+
+# Fix ESLint issues
+
+npx eslint "src/\*_/_.ts" --fix
+
+# Or if you have npm scripts
+
+npm run format
+npm run lint:fix
+
 # Development
 
 npm run start:dev

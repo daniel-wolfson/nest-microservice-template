@@ -8,7 +8,7 @@ config({ path: join(process.cwd(), `.env.${environment}`) });
 const options = (): DataSourceOptions => {
     const url = process.env.DATABASE_URL;
     if (!url) {
-        throw new Error('DATABASE_URL not setted');
+        throw new Error('DATABASE_URL not defined');
     }
     return {
         type: 'postgres',

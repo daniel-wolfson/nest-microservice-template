@@ -3,14 +3,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserlDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
-
-export type User = {
-    userId: string;
-    username: string;
-    password: string;
-    email: string;
-    roles: string[];
-};
+import { User } from './users.type';
 
 @Injectable()
 export class UsersService {

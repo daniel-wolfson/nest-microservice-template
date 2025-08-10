@@ -6,7 +6,7 @@ import { RabbitMQModule } from './rabbitmq/rabbitmq.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import configuration from 'src/config/configuration';
-import { EnvironmentConfigFactory } from 'src/config/ironment.config';
+import { EnvironmentConfigFactory } from 'src/config/environment.config';
 
 @Module({
     imports: [
