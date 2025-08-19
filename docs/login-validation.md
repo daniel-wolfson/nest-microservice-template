@@ -31,7 +31,7 @@ export class LoginDto {
     @MinLength(8, { message: 'Password must be at least 8 characters long' })
     @MaxLength(128, { message: 'Password must not exceed 128 characters' })
     @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).*$/, {
-        message: 'Password must contain at least one lowercase letter, one uppercase letter, and one number'
+        message: 'Password must contain at least one lowercase letter, one uppercase letter, and one number',
     })
     password: string;
 }
@@ -40,38 +40,43 @@ export class LoginDto {
 #### Validation Rules:
 
 **Email:**
-- Must be a valid email format
-- Required (not empty)
-- Maximum 255 characters
+
+-   Must be a valid email format
+-   Required (not empty)
+-   Maximum 255 characters
 
 **Password:**
-- Must be a string
-- Required (not empty)
-- Minimum 8 characters
-- Maximum 128 characters
-- Must contain at least one lowercase letter, uppercase letter, and number
+
+-   Must be a string
+-   Required (not empty)
+-   Minimum 8 characters
+-   Maximum 128 characters
+-   Must contain at least one lowercase letter, uppercase letter, and number
 
 ### 2. Controller Implementation
 
 Located: `src/modules/auth/login.controller.ts`
 
 The login controller includes:
-- Explicit validation using class-validator
-- Comprehensive error handling
-- Detailed logging
-- Enhanced Swagger documentation
+
+-   Explicit validation using class-validator
+-   Comprehensive error handling
+-   Detailed logging
+-   Enhanced Swagger documentation
 
 Key features:
-- **Explicit Validation**: Additional validation layer beyond global pipes
-- **Error Formatting**: Consistent error response structure
-- **Logging**: Request tracking with email (sanitized for security)
-- **Swagger Integration**: Detailed API documentation with examples
+
+-   **Explicit Validation**: Additional validation layer beyond global pipes
+-   **Error Formatting**: Consistent error response structure
+-   **Logging**: Request tracking with email (sanitized for security)
+-   **Swagger Integration**: Detailed API documentation with examples
 
 ### 3. Global Validation Pipeline
 
 Located: `src/main.ts`
 
 Global configuration includes:
+
 ```typescript
 app.useGlobalPipes(
     new ValidationPipe({
@@ -99,23 +104,26 @@ app.useGlobalPipes(
 Located: `src/modules/auth/validation.service.ts`
 
 Provides utilities for:
-- Manual DTO validation
-- Silent validation (without exceptions)
-- Error formatting
-- Data sanitization for logging
+
+-   Manual DTO validation
+-   Silent validation (without exceptions)
+-   Error formatting
+-   Data sanitization for logging
 
 ### 5. Exception Filtering
 
 Located: `src/common/filters/validation-exception.filter.ts`
 
 Handles validation exceptions with:
-- Consistent error format
-- Request context logging
-- Sanitized error responses
+
+-   Consistent error format
+-   Request context logging
+-   Sanitized error responses
 
 ## API Response Examples
 
 ### Successful Login
+
 ```json
 {
     "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -129,6 +137,7 @@ Handles validation exceptions with:
 ```
 
 ### Validation Error Response
+
 ```json
 {
     "success": false,
@@ -136,9 +145,7 @@ Handles validation exceptions with:
     "error": "Validation Error",
     "message": "Request validation failed",
     "details": {
-        "email": [
-            "Please provide a valid email address"
-        ],
+        "email": ["Please provide a valid email address"],
         "password": [
             "Password must be at least 8 characters long",
             "Password must contain at least one lowercase letter, one uppercase letter, and one number"
@@ -151,6 +158,7 @@ Handles validation exceptions with:
 ```
 
 ### Authentication Error Response
+
 ```json
 {
     "statusCode": 401,
@@ -169,6 +177,7 @@ Handles validation exceptions with:
 4. Test various invalid inputs:
 
 **Invalid Email:**
+
 ```json
 {
     "email": "invalid-email",
@@ -177,6 +186,7 @@ Handles validation exceptions with:
 ```
 
 **Weak Password:**
+
 ```json
 {
     "email": "user@example.com",
@@ -185,6 +195,7 @@ Handles validation exceptions with:
 ```
 
 **Missing Fields:**
+
 ```json
 {
     "email": "",
@@ -195,6 +206,7 @@ Handles validation exceptions with:
 ### Using cURL
 
 **Valid Request:**
+
 ```bash
 curl -X POST "http://localhost:3000/auth/login" \\
      -H "Content-Type: application/json" \\
@@ -205,6 +217,7 @@ curl -X POST "http://localhost:3000/auth/login" \\
 ```
 
 **Invalid Request (weak password):**
+
 ```bash
 curl -X POST "http://localhost:3000/auth/login" \\
      -H "Content-Type: application/json" \\
@@ -217,11 +230,12 @@ curl -X POST "http://localhost:3000/auth/login" \\
 ### Unit Testing
 
 Test cases are provided in `login.controller.spec.ts` covering:
-- Valid login scenarios
-- Invalid email formats
-- Weak passwords
-- Missing required fields
-- Error message formatting
+
+-   Valid login scenarios
+-   Invalid email formats
+-   Weak passwords
+-   Missing required fields
+-   Error message formatting
 
 ## Security Considerations
 
@@ -236,16 +250,18 @@ Test cases are provided in `login.controller.spec.ts` covering:
 ### Environment-Based Error Messages
 
 Error detail visibility is controlled by environment:
-- **Development**: Full error details shown
-- **Production**: Sanitized error messages
+
+-   **Development**: Full error details shown
+-   **Production**: Sanitized error messages
 
 ### Logging
 
 All validation attempts are logged with:
-- Timestamp
-- Request method and path
-- Sanitized request data
-- Validation results
+
+-   Timestamp
+-   Request method and path
+-   Sanitized request data
+-   Validation results
 
 ## Best Practices Implemented
 
@@ -266,6 +282,7 @@ To add new validation rules:
 4. Consider adding custom validators if needed
 
 Example custom validator:
+
 ```typescript
 import { ValidatorConstraint, ValidatorConstraintInterface, ValidationArguments } from 'class-validator';
 
@@ -294,6 +311,7 @@ export class CustomValidator implements ValidatorConstraintInterface {
 ### Debugging
 
 Enable debug logging to see validation flow:
+
 ```typescript
 // In main.ts
 app.useLogger(['log', 'error', 'warn', 'debug']);
@@ -302,6 +320,7 @@ app.useLogger(['log', 'error', 'warn', 'debug']);
 ### Monitoring
 
 Monitor validation errors for:
-- High failure rates (may indicate API abuse)
-- Common validation patterns (for UX improvements)
-- Performance bottlenecks in validation logic
+
+-   High failure rates (may indicate API abuse)
+-   Common validation patterns (for UX improvements)
+-   Performance bottlenecks in validation logic

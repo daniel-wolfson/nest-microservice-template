@@ -108,9 +108,9 @@ describe('LoginController', () => {
             // we need to simulate what class-validator would return
             jest.spyOn(require('class-validator'), 'validate').mockResolvedValue(validationErrors);
 
-            await expect(controller.login(mockRequest, invalidLoginDto as LoginDto))
-                .rejects
-                .toThrow(BadRequestException);
+            await expect(controller.login(mockRequest, invalidLoginDto as LoginDto)).rejects.toThrow(
+                BadRequestException,
+            );
         });
 
         it('should throw BadRequestException for missing password', async () => {
@@ -132,9 +132,9 @@ describe('LoginController', () => {
 
             jest.spyOn(require('class-validator'), 'validate').mockResolvedValue(validationErrors);
 
-            await expect(controller.login(mockRequest, invalidLoginDto as LoginDto))
-                .rejects
-                .toThrow(BadRequestException);
+            await expect(controller.login(mockRequest, invalidLoginDto as LoginDto)).rejects.toThrow(
+                BadRequestException,
+            );
         });
 
         it('should throw BadRequestException for weak password', async () => {
@@ -148,7 +148,8 @@ describe('LoginController', () => {
                     property: 'password',
                     constraints: {
                         minLength: 'Password must be at least 8 characters long',
-                        matches: 'Password must contain at least one lowercase letter, one uppercase letter, and one number',
+                        matches:
+                            'Password must contain at least one lowercase letter, one uppercase letter, and one number',
                     },
                     children: [],
                 },
@@ -156,17 +157,15 @@ describe('LoginController', () => {
 
             jest.spyOn(require('class-validator'), 'validate').mockResolvedValue(validationErrors);
 
-            await expect(controller.login(mockRequest, invalidLoginDto as LoginDto))
-                .rejects
-                .toThrow(BadRequestException);
+            await expect(controller.login(mockRequest, invalidLoginDto as LoginDto)).rejects.toThrow(
+                BadRequestException,
+            );
         });
 
         it('should handle authentication service errors', async () => {
             mockAuthService.login.mockRejectedValue(new UnauthorizedException('Invalid credentials'));
 
-            await expect(controller.login(mockRequest, validLoginDto))
-                .rejects
-                .toThrow(UnauthorizedException);
+            await expect(controller.login(mockRequest, validLoginDto)).rejects.toThrow(UnauthorizedException);
         });
 
         it('should format validation errors correctly', async () => {
@@ -187,7 +186,8 @@ describe('LoginController', () => {
                     property: 'password',
                     constraints: {
                         minLength: 'Password must be at least 8 characters long',
-                        matches: 'Password must contain at least one lowercase letter, one uppercase letter, and one number',
+                        matches:
+                            'Password must contain at least one lowercase letter, one uppercase letter, and one number',
                     },
                     children: [],
                 },

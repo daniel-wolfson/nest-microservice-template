@@ -5,12 +5,25 @@ import { AppModule } from './modules/app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { EnvironmentConfigFactory } from './config/environment.config';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ValidationExceptionFilter } from './common/filters/validation-exception.filter';
+import * as winston from 'winston';
+import { WinstonLogger } from './common/winston.logger';
 
 async function bootstrap() {
-    const logger = new Logger('Bootstrap');
-    const app = await NestFactory.create(AppModule);
+    const loggerInstance = winston.createLogger({
+        transports: [
+            new winston.transports.Console({
+                format: winston.format.combine(winston.format.timestamp(), winston.format.simple()),
+            }),
+        ],
+    });
+    const logger = new WinstonLogger(loggerInstance);
+
+    //const logger = new Logger('Bootstrap');
+    const app = await NestFactory.create(AppModule, {
+        logger: logger,
+    });
+
     const configService = app.get(ConfigService);
     const environmentConfig = EnvironmentConfigFactory.create(configService);
 

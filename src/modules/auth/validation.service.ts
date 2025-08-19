@@ -13,11 +13,7 @@ export class ValidationService {
      * @param context Optional context for logging
      * @returns The validated and transformed object
      */
-    async validateDto<T extends object>(
-        dtoClass: new () => T,
-        data: any,
-        context?: string
-    ): Promise<T> {
+    async validateDto<T extends object>(dtoClass: new () => T, data: any, context?: string): Promise<T> {
         this.logger.debug(`validateDto: Validating ${dtoClass.name}${context ? ` in ${context}` : ''}`);
 
         // Transform plain object to DTO class instance
@@ -28,11 +24,11 @@ export class ValidationService {
 
         if (validationErrors.length > 0) {
             const formattedErrors = this.formatValidationErrors(validationErrors);
-            
+
             this.logger.warn(`validateDto: Validation failed for ${dtoClass.name}`, {
                 context,
                 errors: formattedErrors,
-                data: this.sanitizeDataForLogging(data)
+                data: this.sanitizeDataForLogging(data),
             });
 
             throw new BadRequestException({
@@ -55,7 +51,7 @@ export class ValidationService {
      */
     async validateDtoSilent<T extends object>(
         dtoClass: new () => T,
-        data: any
+        data: any,
     ): Promise<{ isValid: boolean; errors: Record<string, string[]>; dto?: T }> {
         const dto = plainToClass(dtoClass, data);
         const validationErrors = await validate(dto);
@@ -63,14 +59,14 @@ export class ValidationService {
         if (validationErrors.length > 0) {
             return {
                 isValid: false,
-                errors: this.formatValidationErrors(validationErrors)
+                errors: this.formatValidationErrors(validationErrors),
             };
         }
 
         return {
             isValid: true,
             errors: {},
-            dto
+            dto,
         };
     }
 
@@ -83,7 +79,7 @@ export class ValidationService {
         return errors.reduce((acc, error) => {
             const constraints = error.constraints ? Object.values(error.constraints) : [];
             const childErrors = this.formatChildErrors(error.children || []);
-            
+
             acc[error.property] = [...constraints, ...childErrors];
             return acc;
         }, {} as Record<string, string[]>);
@@ -98,13 +94,9 @@ export class ValidationService {
         return children.reduce((acc, child) => {
             const constraints = child.constraints ? Object.values(child.constraints) : [];
             const childErrors = this.formatChildErrors(child.children || []);
-            
-            const formattedConstraints = constraints.map(
-                constraint => `${child.property}: ${constraint}`
-            );
-            const formattedChildErrors = childErrors.map(
-                childError => `${child.property}.${childError}`
-            );
+
+            const formattedConstraints = constraints.map(constraint => `${child.property}: ${constraint}`);
+            const formattedChildErrors = childErrors.map(childError => `${child.property}.${childError}`);
 
             return [...acc, ...formattedConstraints, ...formattedChildErrors];
         }, [] as string[]);
