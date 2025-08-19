@@ -7,6 +7,8 @@ import { AuthModule } from './auth/auth.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import configuration from 'src/config/configuration';
 import { EnvironmentConfigFactory } from 'src/config/environment.config';
+import { WinstonModule } from 'nest-winston';
+import * as winston from 'winston';
 
 @Module({
     imports: [
@@ -21,6 +23,14 @@ import { EnvironmentConfigFactory } from 'src/config/environment.config';
         DomainsModule,
         AuthModule,
         RabbitMQModule,
+        WinstonModule.forRoot({
+            transports: [
+                new winston.transports.Console({
+                    format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
+                }),
+                new winston.transports.File({ filename: 'logs/app.log' }),
+            ],
+        }),
     ],
     providers: [
         {
