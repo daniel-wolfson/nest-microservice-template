@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserlDto } from './dto/update-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import { User } from './users.type';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 
 @Injectable()
 export class UsersService {
@@ -11,7 +12,7 @@ export class UsersService {
         {
             userId: randomUUID(), // Generate GUID,
             username: 'john',
-            password: 'changeme',
+            password: 'change_me',
             email: 'john@example.com',
             roles: ['user'],
         },
@@ -24,7 +25,7 @@ export class UsersService {
         },
     ];
 
-    constructor() {
+    constructor(@Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger) {
         this.users = this.users.map(user => ({
             ...user,
             password: bcrypt.hashSync(user.password, 10),
@@ -40,11 +41,19 @@ export class UsersService {
     }
 
     create(createUserDto: CreateUserDto) {
-        const user = {
-            userId: randomUUID(),
-            ...createUserDto,
-        };
-        this.users.push();
+        let user = undefined;
+        try {
+            user = {
+                userId: randomUUID(),
+                ...createUserDto,
+            };
+            this.users.push();
+        } catch (error: unknown) {
+            const errMsg = error instanceof Error ? error.message : 'Unknown error';
+            const errStack = error instanceof Error ? error.stack : undefined;
+            this.logger.error(`Error occurred: ${errMsg}`, { stack: errStack });
+            throw new Error(`Failed to create user: ${errMsg}`);
+        }
         return user;
     }
 
@@ -52,12 +61,19 @@ export class UsersService {
         return this.users;
     }
 
-    update(id: number, updateUserDto: UpdateUserlDto) {
-        const updatedUser = {
-            ...updateUserDto,
-        };
-        this.users.find(user => user.email === updatedUser.email);
-        return `This action updates a #${id} user`;
+    update(id: number, updateUserDto: UpdateUserDto) {
+        try {
+            const updatedUser = {
+                ...updateUserDto,
+            };
+            this.users.find(user => user.email === updatedUser.email);
+            // TODO: Implement actual update logic
+        } catch (error: unknown) {
+            const errMsg = error instanceof Error ? error.message : 'Unknown error';
+            const errStack = error instanceof Error ? error.stack : undefined;
+            this.logger.error(`Error occurred: ${errMsg}`, { stack: errStack });
+            throw new Error(`This action updates a #${id} user: ${errMsg}`);
+        }
     }
 
     remove(id: number) {

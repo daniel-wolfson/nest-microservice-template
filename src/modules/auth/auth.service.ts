@@ -1,19 +1,20 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
 import { User } from '../users/users.type';
 import { JwtModuleOptions, JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { Logger } from 'winston';
 
 @Injectable()
 export class AuthService {
-    private readonly logger = new Logger(AuthService.name);
-
     constructor(
         private usersService: UsersService,
         private jwtService: JwtService,
         private configService: ConfigService,
+        @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
     ) {}
 
     /**
@@ -42,12 +43,21 @@ export class AuthService {
             const isPasswordValid = await bcrypt.compare(password, user.password);
 
             if (!isPasswordValid) {
-                this.logger.warn(`Invalid password attempt for user: ${email}`);
+                this.logger.warn(`Invalid password attempt for user: ${email}`, {
+                    context: 'AuthService',
+                    method: 'validateUser',
+                    email,
+                });
                 return null;
             }
 
             // Log successful validation (without sensitive data)
-            this.logger.log(`User validated successfully: ${user.username}`);
+            this.logger.info(`User validated successfully: ${user.username}`, {
+                context: 'AuthService',
+                method: 'validateUser',
+                username: user.username,
+                userId: user.userId,
+            });
 
             // Return user without sensitive information
             const { password: _, ...userWithoutPassword } = user;
@@ -118,7 +128,12 @@ export class AuthService {
             // Store refresh token in database (optional but recommended)
             await this.storeRefreshToken(`${user.userId}`, refreshPayload.jti, refreshTokenExpiration);
 
-            this.logger.log(`JWT tokens generated for user: ${user.username}`);
+            this.logger.info(`JWT tokens generated for user: ${user.username}`, {
+                context: 'AuthService',
+                method: 'login',
+                username: user.username,
+                userId: user.userId,
+            });
 
             return {
                 access_token: accessToken,
@@ -197,7 +212,12 @@ export class AuthService {
     async revokeRefreshToken(userId: string, tokenId: string): Promise<void> {
         try {
             await this.removeRefreshToken(userId, tokenId);
-            this.logger.log(`Refresh token revoked for user: ${userId}`);
+            this.logger.info(`Refresh token revoked for user: ${userId}`, {
+                context: 'AuthService',
+                method: 'revokeRefreshToken',
+                userId,
+                tokenId,
+            });
         } catch (error: any) {
             this.logger.error(`Error revoking refresh token: ${error.message}`);
             throw new Error('Token revocation failed');
@@ -211,7 +231,11 @@ export class AuthService {
     async logout(userId: string): Promise<void> {
         try {
             await this.removeAllRefreshTokens(userId);
-            this.logger.log(`All refresh tokens revoked for user: ${userId}`);
+            this.logger.info(`All refresh tokens revoked for user: ${userId}`, {
+                context: 'AuthService',
+                method: 'logout',
+                userId,
+            });
         } catch (error: any) {
             this.logger.error(`Error during logout: ${error.message}`);
             throw new Error('Logout failed');

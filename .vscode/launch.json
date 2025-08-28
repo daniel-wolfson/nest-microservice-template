@@ -1,7 +1,50 @@
 {
     "version": "0.2.0",
     "configurations": [
-        
+        {
+            "name": "Debug NestJS Application",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/node_modules/@nestjs/cli/bin/nest.js",
+            "args": ["start", "--debug", "--watch"],
+            "env": {
+                "NODE_ENV": "development",
+                "LOG_LEVEL": "debug"
+            },
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "restart": true,
+            "runtimeExecutable": "node",
+            "skipFiles": ["<node_internals>/**"],
+            "sourceMaps": true,
+            "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+            "serverReadyAction": {
+                "pattern": "Nest application successfully started",
+                "uriFormat": "http://localhost:3000/api",
+                "action": "openExternally"
+            }
+        },
+        {
+            "name": "Debug NestJS with Breakpoints",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/main.ts",
+            "runtimeArgs": ["-r", "ts-node/register", "-r", "tsconfig-paths/register"],
+            "env": {
+                "NODE_ENV": "development",
+                "LOG_LEVEL": "debug"
+            },
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "sourceMaps": true,
+            "stopOnEntry": false,
+            "skipFiles": ["<node_internals>/**"],
+            "serverReadyAction": {
+                "pattern": "Application is running on:",
+                "uriFormat": "http://localhost:3000/api",
+                "action": "openExternally"
+            }
+        },
         {
             "name": "Debug Login Controller",
             "type": "node",
@@ -12,6 +55,26 @@
             "runtimeArgs": ["-r", "ts-node/register", "-r", "tsconfig-paths/register"],
             "env": {
                 "NODE_ENV": "development"
+            }
+        },
+        {
+            "name": "Launch NestJS with Browser",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/node_modules/@nestjs/cli/bin/nest.js",
+            "args": ["start", "--watch"],
+            "env": {
+                "NODE_ENV": "development"
+            },
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "restart": true,
+            "runtimeExecutable": "node",
+            "skipFiles": ["<node_internals>/**"],
+            "serverReadyAction": {
+                "pattern": "Nest application successfully started",
+                "uriFormat": "http://localhost:3000/api",
+                "action": "openExternally"
             }
         }
     ]

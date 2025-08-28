@@ -1,17 +1,21 @@
-import { Controller, Request, Post, UseGuards, Body, Get, BadRequestException, Logger } from '@nestjs/common';
+import { Controller, Request, Post, UseGuards, Body, Get, BadRequestException, Inject } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { UsersService } from '../users/users.service';
 import { validate } from 'class-validator';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { Logger } from 'winston';
 
 @ApiTags('auth')
 @Controller('auth')
 export class LoginController {
-    private readonly logger = new Logger(LoginController.name);
-
-    constructor(private readonly usersService: UsersService, private readonly authService: AuthService) {}
+    constructor(
+        private readonly usersService: UsersService,
+        private readonly authService: AuthService,
+        @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
+    ) {}
 
     @UseGuards(AuthGuard('local'))
     @Post('login')
@@ -36,13 +40,21 @@ export class LoginController {
 
         try {
             const result = await this.authService.login(req.user);
-            this.logger.log(`login: Successful login for email: ${loginDto.email}`);
+            this.logger.info(`login: Successful login for email: ${loginDto.email}`, {
+                context: 'LoginController',
+                method: 'login',
+                email: loginDto.email,
+                userId: req.user.userId,
+            });
             return result;
         } catch (error) {
-            this.logger.error(
-                `login: Login failed for email: ${loginDto.email}`,
-                error instanceof Error ? error.stack : String(error),
-            );
+            this.logger.error(`login: Login failed for email: ${loginDto.email}`, {
+                context: 'LoginController',
+                method: 'login',
+                email: loginDto.email,
+                error: error instanceof Error ? error.message : String(error),
+                stack: error instanceof Error ? error.stack : undefined,
+            });
             throw error;
         }
     }

@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+    # Elasticsearch for logging
+    elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+        container_name: microservice-elasticsearch
+        environment:
+            - discovery.type=single-node
+            - xpack.security.enabled=false
+            - ES_JAVA_OPTS=-Xms512m -Xmx512m
+        ports:
+            - '9200:9200'
+            - '9300:9300'
+        volumes:
+            - elasticsearch_data:/usr/share/elasticsearch/data
+        networks:
+            - microservice-network
+        restart: unless-stopped
+
+    # Kibana for log visualization
+    kibana:
+        image: docker.elastic.co/kibana/kibana:8.11.0
+        container_name: microservice-kibana
+        environment:
+            - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+        ports:
+            - '5601:5601'
+        depends_on:
+            - elasticsearch
+        networks:
+            - microservice-network
+        restart: unless-stopped
+
+    # Your existing services...
+    postgres:
+        image: postgres:15-alpine
+        container_name: microservice-postgres
+        environment:
+            POSTGRES_DB: db_test
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: 123456
+        ports:
+            - '5432:5432'
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+            - ./docker/postgres/postgres/install-uuid.sql:/docker-entrypoint-initdb.d/install-uuid.sql
+        networks:
+            - microservice-network
+        restart: unless-stopped
+
+    rabbitmq:
+        image: rabbitmq:3-management-alpine
+        container_name: microservice-rabbitmq
+        environment:
+            RABBITMQ_DEFAULT_USER: admin
+            RABBITMQ_DEFAULT_PASS: 123456
+        ports:
+            - '5672:5672'
+            - '15672:15672'
+        volumes:
+            - rabbitmq_data:/var/lib/rabbitmq
+        networks:
+            - microservice-network
+        restart: unless-stopped
+
+volumes:
+    postgres_data:
+    rabbitmq_data:
+    elasticsearch_data:
+
+networks:
+    microservice-network:
+        driver: bridge

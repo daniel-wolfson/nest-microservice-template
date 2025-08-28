@@ -94,6 +94,30 @@ npm run start:prod
 
 # Docker
 
+## rabbit
+
+### Windows
+
+# Simple console logging
+
+npm run start:dev
+
+# File logging with rotation
+
+$env:LOG_STRATEGY="FILE"; npm run start:dev
+
+### Linux
+
+export LOG_STRATEGY=DEFAULT
+export LOG_LEVEL=info
+npm run start:prod
+
+## Elasticsearch Stack:
+
+docker-compose -f docker-compose.logging.yml up -d
+$env:LOG_STRATEGY="ELS"; npm run start:dev
+# View in Kibana: http://localhost:5601
+
 docker-compose -f docker-compose.development.yml up
 docker-compose -f docker-compose.production.yml up
 

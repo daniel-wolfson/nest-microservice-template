@@ -6,10 +6,25 @@
     "editor.codeActionsOnSave": {
         "source.fixAll.eslint": "always"
     },
+    "terminal.integrated.fontSize": 14,
     "[typescript]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode",
         "editor.rulers": [120],
         "editor.wordWrap": "bounded",
         "editor.wordWrapColumn": 120
-    }
+    },
+    "cSpell.words": [
+        "amqp",
+        "crun",
+        "findstr",
+        "golevelup",
+        "initdb",
+        "journalctl",
+        "RABBITMQ",
+        "tzdata",
+        "VHOST",
+        "vhosts",
+        "WEAKPASSWORD",
+        "xpack"
+    ]
 }
