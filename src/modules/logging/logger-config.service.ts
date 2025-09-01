@@ -5,7 +5,8 @@ import * as winston from 'winston';
 import * as DailyRotateFile from 'winston-daily-rotate-file';
 import { ElasticsearchTransport } from 'winston-elasticsearch';
 import * as os from 'os';
-import { LoggerStrategy, getLoggerStrategy } from './logger-strategy.enum';
+import { LoggerStrategy } from './logger-strategy.enum';
+import { getLoggerStrategy } from './logger.strategy';
 
 export type LogStrategy = 'CONSOLE' | 'FILE' | 'ELASTICSEARCH' | 'ELS' | 'SYSLOG' | 'DEFAULT';
 

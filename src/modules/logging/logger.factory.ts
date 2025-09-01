@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import * as winston from 'winston';
-import { LoggerStrategy, getLoggerStrategy } from './logger-strategy.enum';
-import { WinstonLogger } from '../../common/winston.logger';
+import { LoggerStrategy } from './logger-strategy.enum';
+import { getLoggerStrategy } from './logger.strategy';
+import { StructuredLogger } from '../../common/winston.logger';
 import { ElasticsearchLoggerService } from '../elasticsearch/elasticsearch-logger.service';
 import { ConfigService } from '@nestjs/config';
 import { EnvironmentConfigFactory } from 'src/config/environment.config';
@@ -109,10 +110,10 @@ export class LoggerFactory {
                 case LoggerStrategy.ALL:
                 case LoggerStrategy.SYSLOG:
                 default:
-                    return new WinstonLogger(loggerInstance);
+                    return new StructuredLogger(loggerInstance);
             }
         } catch (error: unknown) {
-            const fallbackLogger = new WinstonLogger(loggerInstance);
+            const fallbackLogger = new StructuredLogger(loggerInstance);
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             fallbackLogger.warn(
                 `Failed to initialize ${loggerStrategy} logger: ${errorMessage}. Using Winston fallback.`,

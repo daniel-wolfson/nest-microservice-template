@@ -1,26 +1,31 @@
-import { LoggerService } from '@nestjs/common';
+import { Inject, LoggerService } from '@nestjs/common';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
-export class WinstonLogger implements LoggerService {
-    constructor(private readonly logger: Logger) {}
+export class StructuredLogger implements LoggerService {
+    constructor(@Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger) {}
 
-    log(message: string) {
-        this.logger.info(message);
+    log(message: string, ...meta: any[]) {
+        this.logger.info(message, meta);
     }
 
-    error(message: string, trace?: string) {
-        this.logger.error(message, { trace });
+    info(message: string, ...meta: any[]) {
+        this.logger.info(message, meta);
     }
 
-    warn(message: string) {
-        this.logger.warn(message);
+    error(message: string, ...meta: any[]) {
+        this.logger.error(message, meta);
     }
 
-    debug(message: string) {
-        this.logger.debug(message);
+    warn(message: string, ...meta: any[]) {
+        this.logger.warn(message, meta);
     }
 
-    verbose(message: string) {
-        this.logger.verbose(message);
+    debug(message: string, ...meta: any[]) {
+        this.logger.debug(message, meta);
+    }
+
+    verbose(message: string, ...meta: any[]) {
+        this.logger.verbose(message, meta);
     }
 }

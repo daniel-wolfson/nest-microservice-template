@@ -8,6 +8,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import configuration from 'src/config/configuration';
 import { EnvironmentConfigFactory } from 'src/config/environment.config';
 import { LoggerModule } from './logging';
+import { KafkaModule } from './kafka';
 
 @Module({
     imports: [
@@ -22,6 +23,7 @@ import { LoggerModule } from './logging';
         DomainsModule,
         AuthModule,
         RabbitMQModule,
+        KafkaModule,
         LoggerModule,
     ],
     providers: [
