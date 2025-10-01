@@ -10,6 +10,11 @@ import { EnvironmentConfigFactory } from 'src/config/environment.config';
 import { LoggerModule } from './logging';
 import { KafkaModule } from './kafka';
 
+// GraphQL-step 1 - Project Setup and Dependencies (imports show installed packages)
+import { ApolloDriverConfig, ApolloDriver } from '@nestjs/apollo';
+import { GraphQLModule } from '@nestjs/graphql';
+import { UserModule } from './users/user.module';
+
 @Module({
     imports: [
         ConfigModule.forRoot({
@@ -25,6 +30,16 @@ import { KafkaModule } from './kafka';
         RabbitMQModule,
         KafkaModule,
         LoggerModule,
+        // GraphQL-step 4 - GraphQL Module Configuration
+        // Set up GraphQLModule.forRoot() with ApolloDriver and autoSchemaFile option
+        // This configures Apollo Server integration and enables automatic GraphQL schema generation
+        GraphQLModule.forRoot<ApolloDriverConfig>({
+            driver: ApolloDriver,
+            autoSchemaFile: 'src/schema.gql',
+        }),
+        // GraphQL-step 12 - Register Module in AppModule
+        // Import feature modules to make them available application-wide
+        UserModule,
     ],
     providers: [
         {

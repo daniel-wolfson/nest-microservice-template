@@ -8,7 +8,7 @@ import { JwtStrategy } from './jwt.strategy';
 import { LoginController } from 'src/modules/auth/login.controller';
 import { ConfigModule } from '@nestjs/config';
 import { JwtConfigFactory } from './jwt.factory';
-import { UsersService } from '../users/users.service';
+import { UsersService } from '../users/user.service.old';
 
 @Module({
     imports: [

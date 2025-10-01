@@ -1,5 +1,8 @@
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+// GraphQL-step 13 - Configure Application Bootstrap
+// Set up main.ts with NestFactory.create() and configure the application to listen on port 3000
+// This creates the HTTP server and initializes all modules, making your GraphQL API accessible at /graphql endpoint
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './modules/app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';

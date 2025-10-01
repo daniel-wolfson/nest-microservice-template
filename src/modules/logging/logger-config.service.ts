@@ -137,6 +137,7 @@ export class LoggerConfigService implements WinstonModuleOptionsFactory {
             transports.push(
                 new ElasticsearchTransport({
                     level: config.isProduction ? 'info' : 'debug',
+                    apm: null,
                     clientOpts: {
                         node: elasticsearchNode,
                         maxRetries: 3,

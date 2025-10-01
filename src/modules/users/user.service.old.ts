@@ -3,7 +3,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
-import { User } from './users.type';
+import { User } from './user.type';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 
 @Injectable()
