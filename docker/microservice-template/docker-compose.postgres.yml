@@ -1,0 +1,60 @@
+version: "3.5"
+
+services:
+  postgres:
+    container_name: postgres_db
+    build: ./postgres/db
+    secrets:
+      - db-password
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD_FILE: /run/secrets/db-password
+      #POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-123456}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+    volumes:
+      - microservice_template_postgres_data:/var/lib/postgresql/data
+      - ./postgres/db/install-uuid.sql:/docker-entrypoint-initdb.d/install-uuid.sql
+      - ./postgres/db/init-scripts.sql:/docker-entrypoint-initdb.d/init-scripts.sql
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    networks:
+      - microservice_template_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  pgadmin:
+    container_name: postgres_pgadmin
+    build: ./postgres/pgadmin
+    secrets:
+      - pgadmin-password
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@admin.com}
+      PGADMIN_DEFAULT_PASSWORD_FILE: /run/secrets/pgadmin-password
+      #PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-123456}
+    volumes:
+      - microservice_template_pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    networks:
+      - microservice_template_network
+    restart: unless-stopped
+    depends_on:
+      - postgres
+
+secrets:
+  db-password:
+    file: ./secrets/db-password.txt
+  pgadmin-password:
+    file: ./secrets/pgadmin-password.txt
+
+networks:
+  microservice_template_network:
+    driver: bridge
+
+volumes:
+  microservice_template_postgres_data:
+  microservice_template_pgadmin_data:

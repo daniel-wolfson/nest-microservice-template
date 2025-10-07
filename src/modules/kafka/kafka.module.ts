@@ -7,6 +7,7 @@ import { KafkaConsumerService } from './kafka-consumer.service';
 import { KafkaController } from './kafka.controller';
 import { ExampleMessageHandler } from './example-message.handler';
 import { ProducerStrategyFactory } from './producer-strategy.factory';
+import { StructuredLogger } from '../../../src/common/winston.logger';
 
 @Module({
     imports: [ConfigModule, WinstonModule, KafkaModule],
@@ -17,6 +18,7 @@ import { ProducerStrategyFactory } from './producer-strategy.factory';
         KafkaConsumerService,
         ProducerStrategyFactory,
         ExampleMessageHandler,
+        StructuredLogger,
     ],
     exports: [KafkaSettings, KafkaProducerService, KafkaConsumerService, ExampleMessageHandler],
 })

@@ -7,6 +7,12 @@ import { ElasticsearchLoggerService } from '../elasticsearch/elasticsearch-logge
 import { ConfigService } from '@nestjs/config';
 import { EnvironmentConfigFactory } from 'src/config/environment.config';
 
+// Define as const array first (single source of truth)
+const ALLOWED_LOG_LEVELS = ['log', 'error', 'warn', 'debug', 'verbose', 'fatal'];
+
+// Derive the type from the array
+type LevelType = typeof ALLOWED_LOG_LEVELS[number];
+
 @Injectable()
 export class LoggerFactory {
     /**
@@ -14,23 +20,21 @@ export class LoggerFactory {
      * @param configService - ConfigService instance to access environment variables
      * @returns Array of log levels
      */
-    static getLogLevels(
-        configService: ConfigService<unknown, boolean>,
-    ): ('log' | 'error' | 'warn' | 'debug' | 'verbose' | 'fatal')[] {
+    static getLogLevels(configService: ConfigService<unknown, boolean>): LevelType[] {
         // Configure log levels based on environment
-        const allowedLogLevels = ['log', 'error', 'warn', 'debug', 'verbose', 'fatal'] as const;
+
         const logLevels = EnvironmentConfigFactory.getLogLevel(configService).filter(
-            (level: unknown): level is typeof allowedLogLevels[number] =>
-                typeof level === 'string' && allowedLogLevels.includes(level as any),
+            (level: unknown): level is typeof ALLOWED_LOG_LEVELS[number] =>
+                typeof level === 'string' && ALLOWED_LOG_LEVELS.includes(level as any),
         );
-        return logLevels.length > 0 ? logLevels : ['log', 'error', 'warn', 'debug', 'verbose'];
+        return logLevels.length > 0 ? logLevels : ALLOWED_LOG_LEVELS;
     }
     /**
      * Creates a Winston logger instance with specific log levels
      * @param logLevels - Array of log levels to enable
      * @returns Winston logger instance
      */
-    static createWinstonInstance(logLevels: string[] = ['log', 'error', 'warn', 'debug', 'verbose']): winston.Logger {
+    static createWinstonInstance(logLevels: LevelType[] = ALLOWED_LOG_LEVELS): winston.Logger {
         // Map NestJS log levels to Winston levels
         const levelMap: Record<string, string> = {
             verbose: 'silly',
@@ -79,7 +83,7 @@ export class LoggerFactory {
         const loggerStrategy = strategy || getLoggerStrategy(process.env.LOG_STRATEGY);
 
         // Get log levels if app is available, otherwise use defaults
-        let logLevels: string[] = ['log', 'error', 'warn', 'debug', 'verbose'];
+        let logLevels: LevelType[] = ALLOWED_LOG_LEVELS;
         if (app) {
             try {
                 const configService = app.get(ConfigService);

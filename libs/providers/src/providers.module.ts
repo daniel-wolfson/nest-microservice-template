@@ -4,5 +4,6 @@ import { TypeormModule } from './typeorm';
 
 @Module({
     imports: [TypeormModule, AmqpModule],
+    exports: [TypeormModule], // Export TypeormModule to make DataSource available
 })
 export class ProvidersModule {}

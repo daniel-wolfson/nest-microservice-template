@@ -22,16 +22,16 @@ export class KafkaSettings {
         const settings: KafkaConnectionSettings = {
             brokers,
             clientId: this.configService.get<string>('KAFKA_CLIENT_ID', 'custom-client-id'),
-            connectionTimeout: this.configService.get<number>('KAFKA_CONNECTION_TIMEOUT', 3000),
-            requestTimeout: this.configService.get<number>('KAFKA_REQUEST_TIMEOUT', 30000),
+            connectionTimeout: Number(this.configService.get('KAFKA_CONNECTION_TIMEOUT', 3000)),
+            requestTimeout: Number(this.configService.get('KAFKA_REQUEST_TIMEOUT', 30000)),
             retry: {
-                initialRetryTime: this.configService.get<number>('KAFKA_INITIAL_RETRY_TIME', 100),
-                retries: this.configService.get<number>('KAFKA_RETRIES', 8),
+                initialRetryTime: Number(this.configService.get('KAFKA_INITIAL_RETRY_TIME', 100)),
+                retries: Number(this.configService.get('KAFKA_RETRIES', 8)),
             },
         };
 
-        // SSL Configuration
-        const sslEnabled = this.configService.get<boolean>('KAFKA_SSL_ENABLED', false);
+        // SSL Configuration - compare as string since env vars are strings
+        const sslEnabled = this.configService.get<string>('KAFKA_SSL_ENABLED', 'false') === 'true';
         if (sslEnabled) {
             settings.ssl = true;
         }
@@ -62,12 +62,12 @@ export class KafkaSettings {
 
     getProducerSettings(): KafkaProducerSettings {
         return {
-            maxInFlightRequests: this.configService.get<number>('KAFKA_PRODUCER_MAX_IN_FLIGHT_REQUESTS', 5),
-            idempotent: this.configService.get<boolean>('KAFKA_PRODUCER_IDEMPOTENT', false),
-            transactionTimeout: this.configService.get<number>('KAFKA_PRODUCER_TRANSACTION_TIMEOUT', 30000),
+            maxInFlightRequests: Number(this.configService.get('KAFKA_PRODUCER_MAX_IN_FLIGHT_REQUESTS', 5)),
+            idempotent: this.configService.get<string>('KAFKA_PRODUCER_IDEMPOTENT', 'false') === 'true',
+            transactionTimeout: Number(this.configService.get('KAFKA_PRODUCER_TRANSACTION_TIMEOUT', 30000)),
             retry: {
-                initialRetryTime: this.configService.get<number>('KAFKA_PRODUCER_INITIAL_RETRY_TIME', 100),
-                retries: this.configService.get<number>('KAFKA_PRODUCER_RETRIES', 5),
+                initialRetryTime: Number(this.configService.get('KAFKA_PRODUCER_INITIAL_RETRY_TIME', 100)),
+                retries: Number(this.configService.get('KAFKA_PRODUCER_RETRIES', 5)),
             },
         };
     }
@@ -75,18 +75,19 @@ export class KafkaSettings {
     getConsumerSettings(): KafkaConsumerSettings {
         return {
             groupId: this.configService.get<string>('KAFKA_CONSUMER_GROUP_ID', 'microservice-group'),
-            sessionTimeout: this.configService.get<number>('KAFKA_CONSUMER_SESSION_TIMEOUT', 30000),
-            rebalanceTimeout: this.configService.get<number>('KAFKA_CONSUMER_REBALANCE_TIMEOUT', 60000),
-            heartbeatInterval: this.configService.get<number>('KAFKA_CONSUMER_HEARTBEAT_INTERVAL', 3000),
-            metadataMaxAge: this.configService.get<number>('KAFKA_CONSUMER_METADATA_MAX_AGE', 300000),
-            allowAutoTopicCreation: this.configService.get<boolean>('KAFKA_CONSUMER_ALLOW_AUTO_TOPIC_CREATION', true),
-            maxBytesPerPartition: this.configService.get<number>('KAFKA_CONSUMER_MAX_BYTES_PER_PARTITION', 1048576),
-            minBytes: this.configService.get<number>('KAFKA_CONSUMER_MIN_BYTES', 1),
-            maxBytes: this.configService.get<number>('KAFKA_CONSUMER_MAX_BYTES', 10485760),
-            maxWaitTimeInMs: this.configService.get<number>('KAFKA_CONSUMER_MAX_WAIT_TIME', 5000),
+            sessionTimeout: Number(this.configService.get('KAFKA_CONSUMER_SESSION_TIMEOUT', 30000)),
+            rebalanceTimeout: Number(this.configService.get('KAFKA_CONSUMER_REBALANCE_TIMEOUT', 60000)),
+            heartbeatInterval: Number(this.configService.get('KAFKA_CONSUMER_HEARTBEAT_INTERVAL', 3000)),
+            metadataMaxAge: Number(this.configService.get('KAFKA_CONSUMER_METADATA_MAX_AGE', 300000)),
+            allowAutoTopicCreation:
+                this.configService.get<string>('KAFKA_CONSUMER_ALLOW_AUTO_TOPIC_CREATION', 'true') === 'true',
+            maxBytesPerPartition: Number(this.configService.get('KAFKA_CONSUMER_MAX_BYTES_PER_PARTITION', 1048576)),
+            minBytes: Number(this.configService.get('KAFKA_CONSUMER_MIN_BYTES', 1)),
+            maxBytes: Number(this.configService.get('KAFKA_CONSUMER_MAX_BYTES', 10485760)),
+            maxWaitTimeInMs: Number(this.configService.get('KAFKA_CONSUMER_MAX_WAIT_TIME', 5000)),
             retry: {
-                initialRetryTime: this.configService.get<number>('KAFKA_CONSUMER_INITIAL_RETRY_TIME', 100),
-                retries: this.configService.get<number>('KAFKA_CONSUMER_RETRIES', 8),
+                initialRetryTime: Number(this.configService.get('KAFKA_CONSUMER_INITIAL_RETRY_TIME', 100)),
+                retries: Number(this.configService.get('KAFKA_CONSUMER_RETRIES', 8)),
             },
         };
     }

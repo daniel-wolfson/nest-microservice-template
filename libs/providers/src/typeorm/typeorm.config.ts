@@ -4,6 +4,8 @@ import { join } from 'path';
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { ENTITIES } from '@lib/entities';
 import { ConfigService } from '@nestjs/config';
+import { User } from '@src/modules/graphql/models/user';
+import { UserSetting } from '@src/modules/graphql/models/user-setting';
 
 const environment = process.env.NODE_ENV || 'development';
 config({ path: join(process.cwd(), `.env.${environment}`) });
@@ -15,15 +17,13 @@ const options = (): DataSourceOptions => {
 
     if (!url) {
         Logger.error('DATABASE_URL not setted', 'PROVIDERS [TypeOrm]');
-        return;
-        // throw new Error('DATABASE_URL not setted');
+        throw new Error('DATABASE_URL not set');
     }
     return {
         type: 'postgres',
         url,
         schema: 'public',
-        entities: ENTITIES,
-        name: 'appDataSource',
+        entities: [...ENTITIES, User, UserSetting],
         //migrations: [join(__dirname, '../migrations/*.{ts,js}')],
         //migrationsTableName: 'migrations',
         //migrationsRun: true,

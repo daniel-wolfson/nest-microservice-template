@@ -29,7 +29,7 @@ async function bootstrap() {
         const environmentConfig = EnvironmentConfigFactory.create(configService);
 
         // Configure global middleware and filters
-        await configureGlobalMiddleware(app, environmentConfig);
+        configureGlobalMiddleware(app, environmentConfig);
 
         // Setup Swagger documentation (non-production only)
         if (!environmentConfig.isProduction) {
@@ -55,7 +55,7 @@ async function bootstrap() {
 }
 
 // Extract global middleware configuration
-async function configureGlobalMiddleware(app: any, environmentConfig: any) {
+function configureGlobalMiddleware(app: any, environmentConfig: any) {
     // Global Exception Filters (order matters - most specific first)
     app.useGlobalFilters(new ValidationExceptionFilter(), new GlobalExceptionFilter(app.get(ConfigService)));
 
