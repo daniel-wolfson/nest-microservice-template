@@ -16,15 +16,18 @@ type User {
 }
 
 type Query {
-  getUserById(id: Int!): User
+  getUserById(id: String!): User
   getUsers: [User!]!
 }
 
 type Mutation {
-  createUser(createUserData: CreateUserInput!): User!
+  createUser(createUserData: CreateUserDto!): User!
 }
 
-input CreateUserInput {
-  username: String!
-  displayName: String
+input CreateUserDto {
+  language: String!
+  terms: Boolean!
+  name: String!
+  email: String!
+  password: String!
 }

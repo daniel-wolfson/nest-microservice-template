@@ -1,35 +1,46 @@
-// GraphQL-step 8 - Implement Service Layer
-// Create service classes with @Injectable decorators and inject TypeORM repositories
-// Services contain business logic and data access methods, following separation of concerns
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { User } from '../graphql/models/user';
-import { CreateUserInput } from '../graphql/utils/CreateUserInput';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { PrismaService } from 'nestjs-prisma';
+import { Prisma } from '@prisma/client';
+import { validate as isUUID } from 'uuid';
+import { User } from '@src/core/graphql/models/user';
 
-@Injectable() // GraphQL-step 8 - NestJS service decorator for dependency injection
+@Injectable()
 export class UserService {
-    constructor(
-        // GraphQL-step 8 - Inject TypeORM repository using @InjectRepository decorator
-        @InjectRepository(User) private usersRepository: Repository<User>,
-    ) {}
+    constructor(private prismaService: PrismaService) {}
 
-    // GraphQL-step 8 - Business logic method to get all users with their settings
     getUsers() {
-        return this.usersRepository.find({ relations: ['settings'] });
+        return this.prismaService.user.findMany({ include: { settings: true, roles: { include: { role: true } } } });
     }
 
-    // GraphQL-step 8 - Business logic method to get user by ID with settings
-    getUserById(id: number) {
-        return this.usersRepository.findOne({
+    getUserById(
+        id: string,
+    ): Promise<Prisma.UserGetPayload<{ include: { settings: true; roles: { include: { role: true } } } }> | null> {
+        return this.prismaService.user.findUnique({
             where: { id },
-            relations: ['settings'],
+            include: { settings: true, roles: { include: { role: true } } },
         });
     }
 
-    // GraphQL-step 8 - Business logic method to create a new user
-    createUser(createUserData: CreateUserInput) {
-        const newUser = this.usersRepository.create(createUserData);
-        return this.usersRepository.save(newUser);
+    createUser(data: Prisma.UserUncheckedCreateInput) {
+        if (data.id && !isUUID(data.id)) {
+            throw new BadRequestException('Invalid UUID format for user id');
+        }
+        return this.prismaService.user.create({ data });
+    }
+
+    updateUser(
+        id: string,
+        data: Prisma.UserUpdateInput,
+    ): Promise<Prisma.UserGetPayload<{ include: { settings: true; roles: { include: { role: true } } } }>> {
+        {
+            if (data.id && !isUUID(data.id)) {
+                throw new BadRequestException('Invalid UUID format for user id');
+            }
+            return this.prismaService.user.update({
+                where: { id },
+                data,
+                include: { settings: true, roles: { include: { role: true } } },
+            });
+        }
     }
 }

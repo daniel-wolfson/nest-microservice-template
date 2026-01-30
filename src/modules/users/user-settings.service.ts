@@ -1,43 +1,35 @@
-// GraphQL-step 8 - Implement Service Layer
-// UserSettingService handles business logic for user settings operations
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { User } from '../graphql/models/user';
-import { UserSetting } from '../graphql/models/user-setting';
-import { CreateUserSettingsInput } from '../graphql/utils/CreateUserSettingsInput';
-import { Repository } from 'typeorm';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from 'nestjs-prisma';
+import { Prisma } from '@prisma/client';
 
-@Injectable() // GraphQL-step 8 - NestJS service decorator
+@Injectable()
 export class UserSettingService {
-    constructor(
-        // GraphQL-step 8 - Inject multiple repositories for complex business logic
-        @InjectRepository(UserSetting)
-        private userSettingsRepository: Repository<UserSetting>,
-        @InjectRepository(User)
-        private userRepository: Repository<User>,
-    ) {}
+    constructor(private readonly prismaService: PrismaService) {}
 
-    // GraphQL-step 8 - Method to retrieve user settings by user ID
-    getUserSettingById(userId: number) {
-        return this.userSettingsRepository.findOneBy({ userId });
-    }
-
-    // GraphQL-step 8 - Complex business logic method that involves multiple entities
-    // GraphQL-step 18 - Error Handling and Validation (includes error handling)
-    async createUserSettings(createUserSettingsData: CreateUserSettingsInput) {
-        const findUser = await this.userRepository.findOneBy({
-            id: createUserSettingsData.userId,
+    async getUserSettingById(userId: string) {
+        const settings = await this.prismaService.userSettings.findUnique({
+            where: { userId },
         });
 
-        if (!findUser) throw new Error('User Not Found'); // GraphQL-step 18 - Error handling
+        if (!settings) {
+            throw new NotFoundException(`User settings not found`);
+        }
 
-        const newUserSetting = this.userSettingsRepository.create(createUserSettingsData);
-        const savedSettings = await this.userSettingsRepository.save(newUserSetting);
+        return settings;
+    }
 
-        // GraphQL-step 17 - Database Relationship Configuration (updating relationship)
-        findUser.settings = savedSettings;
-        await this.userRepository.save(findUser);
-
-        return savedSettings;
+    async createUserSettings(data: Prisma.UserSettingsUncheckedCreateInput) {
+        try {
+            return await this.prismaService.userSettings.create({
+                data,
+            });
+        } catch (error) {
+            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+                if (error.code === 'P2002') {
+                    throw new ConflictException('User settings already exist');
+                }
+            }
+            throw error;
+        }
     }
 }

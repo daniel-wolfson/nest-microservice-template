@@ -2,10 +2,11 @@
 // GraphQL-step 10 - Configure Resolver Field Mapping
 // Implement resolver classes with @Resolver decorators and GraphQL operation methods
 import { Resolver, Query, Args, Int, ResolveField, Parent, Mutation } from '@nestjs/graphql';
-import { User } from '../graphql/models/user';
-import { CreateUserInput } from '../graphql/utils/CreateUserInput';
+import { User } from '@src/core/graphql/models/user';
+//import { CreateUserInput } from '../graphql/utils/CreateUserInput';
 import { UserService } from './user.service';
 import { UserSettingService } from './user-settings.service';
+import { CreateUserDto } from './dto/create-user.dto';
 
 export let incrementalId = 3;
 
@@ -17,14 +18,11 @@ export class UserResolver {
         private userSettingService: UserSettingService,
     ) {}
 
-    // GraphQL-step 9 - Query method with @Query decorator
-    // GraphQL-step 10 - Use @Args decorator for parameter mapping
-    @Query(returns => User, { nullable: true })
-    getUserById(@Args('id', { type: () => Int }) id: number) {
+    @Query(() => User, { nullable: true })
+    getUserById(@Args('id', { type: () => String }) id: string) {
         return this.userService.getUserById(id);
     }
 
-    // GraphQL-step 9 - Query method returning array of users
     @Query(() => [User])
     getUsers() {
         return this.userService.getUsers();
@@ -39,7 +37,7 @@ export class UserResolver {
     // GraphQL-step 9 - Mutation method with @Mutation decorator
     // GraphQL-step 10 - @Args decorator maps GraphQL arguments to TypeScript parameters
     @Mutation(returns => User)
-    createUser(@Args('createUserData') createUserData: CreateUserInput) {
+    createUser(@Args('createUserData') createUserData: CreateUserDto) {
         return this.userService.createUser(createUserData);
     }
 }

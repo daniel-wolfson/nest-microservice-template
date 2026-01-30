@@ -8,31 +8,36 @@ import { SharedModule } from '@lib/shared';
 
 import configuration from 'src/config/configuration';
 import { EnvironmentConfigFactory } from 'src/config/environment.config';
+import appConfigurationFactory from './app-config/app-config.factory';
+import { appConfigValidationSchema } from './app-config/app-config.validation';
 
 import { DomainsModule } from '../domains/domains.module';
-import { AuthModule } from './auth/auth.module';
 import { KafkaModule } from './kafka';
 import { LoggerModule } from './logging';
 import { RabbitMQModule } from './rabbitmq/rabbitmq.module';
 import { UserModule } from './users/user.module';
+import { AuthenticationModule } from './authentication/authentication.module';
+import { AppConfigModule } from './app-config/app-config.module';
 
 @Module({
     imports: [
         ConfigModule.forRoot({
             isGlobal: true,
-            load: [configuration],
+            load: [configuration, ...appConfigurationFactory],
+            validationSchema: appConfigValidationSchema,
             envFilePath: [`.env.${process.env.NODE_ENV || 'development'}`, '.env.local', '.env'],
             expandVariables: true,
             cache: true, // Cache configuration for better performance
         }),
 
         // Core modules
+        AppConfigModule,
         SharedModule,
         ProvidersModule,
         LoggerModule,
 
         // Feature modules (alphabetically)
-        AuthModule,
+        AuthenticationModule,
         DomainsModule,
         UserModule,
 

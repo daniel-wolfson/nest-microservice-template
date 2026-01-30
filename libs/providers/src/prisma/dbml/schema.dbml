@@ -1,0 +1,55 @@
+//// ------------------------------------------------------
+//// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+//// ------------------------------------------------------
+
+Table User {
+  id String [pk]
+  name String [not null]
+  email String [unique, not null]
+  password String [not null]
+  settings user_settings
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  roles UserRole [not null]
+}
+
+Table user_settings {
+  userId String [pk]
+  receiveNotifications Boolean [not null, default: false]
+  receiveEmails Boolean [not null, default: false]
+  terms Boolean [not null, default: false]
+  language Language [not null]
+  user User [not null]
+}
+
+Table Role {
+  id String [pk]
+  name String [unique, not null]
+  description String
+  users UserRole [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table UserRole {
+  userId String [not null]
+  roleId String [not null]
+  user User [not null]
+  role Role [not null]
+  assignedAt DateTime [default: `now()`, not null]
+
+  indexes {
+    (userId, roleId) [pk]
+  }
+}
+
+Enum Language {
+  ES_ES
+  EN_US
+}
+
+Ref: user_settings.userId - User.id [delete: Cascade]
+
+Ref: UserRole.userId > User.id [delete: Cascade]
+
+Ref: UserRole.roleId > Role.id [delete: Cascade]

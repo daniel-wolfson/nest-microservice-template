@@ -3,24 +3,29 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
-import { User } from './user.type';
+import { Prisma, User } from '@prisma/client';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { UserWithRoles } from './user.type';
 
 @Injectable()
 export class UsersService {
-    private readonly users: User[] = [
+    private readonly users: UserWithRoles[] = [
         {
-            userId: randomUUID(), // Generate GUID,
-            username: 'john',
+            id: randomUUID().toString(), // Generate GUID,
+            name: 'john',
             password: 'change_me',
             email: 'john@example.com',
-            roles: ['user'],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            roles: [],
         },
         {
-            userId: randomUUID(), // Generate GUID,
-            username: 'maria',
+            id: randomUUID(), // Generate GUID,
+            name: 'maria',
             password: 'guess',
             email: 'maria@example.com',
+            createdAt: new Date(),
+            updatedAt: new Date(),
             roles: [],
         },
     ];
@@ -32,12 +37,12 @@ export class UsersService {
         }));
     }
 
-    async findOne(email: string): Promise<User | undefined> {
+    async findOne(email: string): Promise<UserWithRoles | undefined> {
         return this.users.find(user => user.email === email);
     }
 
-    findById(sub: any): User {
-        return this.users.find(user => user.userId === sub);
+    findById(sub: any): UserWithRoles {
+        return this.users.find(user => user.id === sub);
     }
 
     create(createUserDto: CreateUserDto) {

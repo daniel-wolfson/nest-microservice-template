@@ -4,8 +4,8 @@ import { join } from 'path';
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { ENTITIES } from '@lib/entities';
 import { ConfigService } from '@nestjs/config';
-import { User } from '@src/modules/graphql/models/user';
-import { UserSetting } from '@src/modules/graphql/models/user-setting';
+//import { User } from '@src/modules/graphql/models/user';
+//import { UserSetting } from '@src/modules/graphql/models/user-setting';
 
 const environment = process.env.NODE_ENV || 'development';
 config({ path: join(process.cwd(), `.env.${environment}`) });
@@ -23,7 +23,7 @@ const options = (): DataSourceOptions => {
         type: 'postgres',
         url,
         schema: 'public',
-        entities: [...ENTITIES, User, UserSetting],
+        //entities: [...ENTITIES, User], //UserSetting
         //migrations: [join(__dirname, '../migrations/*.{ts,js}')],
         //migrationsTableName: 'migrations',
         //migrationsRun: true,

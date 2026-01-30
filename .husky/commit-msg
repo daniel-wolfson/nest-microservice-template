@@ -1,0 +1,16 @@
+#!/bin/sh
+#. "$(dirname "$0")/_/husky.sh"
+
+COMMIT_MSG=$(cat "$1")
+COMMIT_PATTERN="^(feat|fix|refactor|chore)\([0-9]+\): .+$"
+
+if [[ ! "$COMMIT_MSG" =~ $COMMIT_PATTERN ]]; then
+    echo "❌ Invalid commit message: '$COMMIT_MSG'"
+    echo "✅ Correct format: feat/fix/refactor/chore(task/bug id): your message"
+    echo "Example: feat(4322): add price calculation logic and mappers"
+    exit 1
+fi
+
+exit 0
+
+npx commitlint --edit

@@ -1,0 +1,31 @@
+npm run test
+
+#!/bin/sh
+#. "$(dirname "$0")/_/husky.sh"
+# & "C:\Program Files\Git\bin\bash.exe" .husky/pre-commit
+
+BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+GIT_USER=$(git config user.name)
+GIT_EMAIL=$(git config user.email)
+
+echo "BRANCH_NAME: '$BRANCH_NAME'"
+echo "GIT_USER: '$GIT_USER'"
+echo "GIT_EMAIL: '$GIT_EMAIL'"
+
+if [ "$GIT_EMAIL" = "daniel.wolfson@hotmail.com" ]; then
+    echo "✅ On main branch - skipping branch name validation"
+    exit 0
+fi
+
+# Define the allowed pattern for branch naming
+BRANCH_PATTERN="^(feature|bugfix|hotfix|test)/[0-9]+_[a-zA-Z0-9_-]+$"
+
+# Check if the branch name matches the pattern
+if [[ ! "$BRANCH_NAME" =~ $BRANCH_PATTERN ]]; then
+    echo "❌ Invalid branch name: '$BRANCH_NAME'"
+    echo "✅ Correct format: [feature/bugfix/hotfix/test]/[task/bug id]_your_message"
+    echo "Example: feature/4322_add_users"
+    exit 1
+fi
+
+exit 0

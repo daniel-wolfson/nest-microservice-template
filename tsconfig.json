@@ -29,7 +29,8 @@
             "@lib/entities/*": ["libs/entities/src/*"],
             "@lib/domains": ["libs/domains/src"],
             "@lib/domains/*": ["libs/domains/src/*"],
-            "@src/*": ["src/*"]
+            "@src/*": ["src/*"],
+            "@core/*": ["src/core/*"]
         }
     }
 }
