@@ -1,0 +1,32 @@
+// Invoice model
+model Invoice {
+  id            String        @id @default(uuid())
+  billingUserId String
+  invoiceNumber String        @unique
+  amount        Float
+  currency      String        @default("USD")
+  status        InvoiceStatus @default(DRAFT)
+  description   String?
+  pdfUrl        String?
+  dueDate       DateTime?     @db.Timestamptz(3)
+  paidAt        DateTime?     @db.Timestamptz(3)
+  createdAt     DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime      @updatedAt @db.Timestamptz(3)
+  
+  // Relations
+  billingUser  BillingUser   @relation(fields: [billingUserId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  
+  @@index([billingUserId])
+  @@index([status])
+  @@index([invoiceNumber])
+}
+
+// Invoice Status enum
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  VOID
+  UNCOLLECTIBLE
+}

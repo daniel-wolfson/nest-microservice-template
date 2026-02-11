@@ -23,53 +23,8 @@ generator dbml {
   provider = "prisma-dbml-generator"
 }
 
-// Example model from current project
-model User {
-  id                  String        @id @default(uuid())
-  name                String
-  email               String        @unique
-  password            String
-  settings            UserSettings?
-  createdAt           DateTime      @default(now()) @db.Timestamptz(3)
-  updatedAt           DateTime      @updatedAt @db.Timestamptz(3)
-  roles               UserRole[]    
-}
-
-// User settings model
-model UserSettings {
-  userId               String  @id @map("userId")
-  receiveNotifications Boolean @default(false)
-  receiveEmails        Boolean @default(false)
-  terms                Boolean @default(false)
-  language             Language
-  user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("user_settings")
-}
-
 // Enum example
 enum Language {
   ES_ES
   EN_US
-}
-
-model Role {
-  id          String     @id @default(uuid())
-  name        String     @unique
-  description String?
-  users       UserRole[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-}
-
-model UserRole {
-  userId    String
-  roleId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  assignedAt DateTime @default(now())
-
-  @@id([userId, roleId])
-  @@index([userId])
-  @@index([roleId])
 }

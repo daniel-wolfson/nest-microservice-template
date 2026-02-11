@@ -1,0 +1,28 @@
+// Plan model
+model Plan {
+  id            String         @id @default(uuid())
+  name          String
+  description   String?
+  stripePriceId String?        @unique
+  price         Float
+  currency      String         @default("USD")
+  interval      PlanInterval   @default(MONTH)
+  intervalCount Int            @default(1)
+  features      Json?
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime       @updatedAt @db.Timestamptz(3)
+  
+  // Relations
+  subscriptions Subscription[]
+  
+  @@index([isActive])
+}
+
+// Plan Interval enum
+enum PlanInterval {
+  DAY
+  WEEK
+  MONTH
+  YEAR
+}

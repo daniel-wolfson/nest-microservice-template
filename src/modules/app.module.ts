@@ -18,6 +18,7 @@ import { RabbitMQModule } from './rabbitmq/rabbitmq.module';
 import { UserModule } from './users/user.module';
 import { AuthenticationModule } from './authentication/authentication.module';
 import { AppConfigModule } from './app-config/app-config.module';
+import { BillingModule } from './billing';
 
 @Module({
     imports: [
@@ -40,6 +41,7 @@ import { AppConfigModule } from './app-config/app-config.module';
         AuthenticationModule,
         DomainsModule,
         UserModule,
+        BillingModule,
 
         // Integration modules
         GraphQLModule.forRoot<ApolloDriverConfig>({

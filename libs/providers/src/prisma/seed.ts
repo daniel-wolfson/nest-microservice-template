@@ -1,8 +1,12 @@
-import { Language, Prisma, PrismaClient } from '@prisma/client';
-import { CreateUserDto } from '@src/modules/users/dto/create-user.dto';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Prisma, PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { Pool } from 'pg';
 
-const prisma = new PrismaClient();
+const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:123456@localhost:5432/postgres';
+var pool = new Pool({ connectionString });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
     await prisma.user.deleteMany();

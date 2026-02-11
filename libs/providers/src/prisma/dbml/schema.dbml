@@ -2,24 +2,51 @@
 //// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 //// ------------------------------------------------------
 
-Table User {
+Table BillingUser {
   id String [pk]
-  name String [not null]
-  email String [unique, not null]
-  password String [not null]
-  settings user_settings
+  userId String [unique, not null]
+  customerId String
+  balance Float [not null, default: 0]
+  currency String [not null, default: 'USD']
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
-  roles UserRole [not null]
+  subscriptions Subscription [not null]
+  transactions Transaction [not null]
+  invoices Invoice [not null]
+  virtualAccounts VirtualAccount [not null]
 }
 
-Table user_settings {
-  userId String [pk]
-  receiveNotifications Boolean [not null, default: false]
-  receiveEmails Boolean [not null, default: false]
-  terms Boolean [not null, default: false]
-  language Language [not null]
-  user User [not null]
+Table Invoice {
+  id String [pk]
+  billingUserId String [not null]
+  invoiceNumber String [unique, not null]
+  amount Float [not null]
+  currency String [not null, default: 'USD']
+  status InvoiceStatus [not null, default: 'DRAFT']
+  description String
+  pdfUrl String
+  dueDate DateTime
+  paidAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  billingUser BillingUser [not null]
+  transactions Transaction [not null]
+}
+
+Table Plan {
+  id String [pk]
+  name String [not null]
+  description String
+  stripePriceId String [unique]
+  price Float [not null]
+  currency String [not null, default: 'USD']
+  interval PlanInterval [not null, default: 'MONTH']
+  intervalCount Int [not null, default: 1]
+  features Json
+  isActive Boolean [not null, default: true]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  subscriptions Subscription [not null]
 }
 
 Table Role {
@@ -29,6 +56,55 @@ Table Role {
   users UserRole [not null]
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
+}
+
+Table Subscription {
+  id String [pk]
+  billingUserId String [not null]
+  stripeSubscriptionId String [unique]
+  stripePriceId String
+  planId String [not null]
+  planName String [not null]
+  status SubscriptionStatus [not null, default: 'CREATED']
+  currentPeriodStart DateTime
+  currentPeriodEnd DateTime
+  cancelAtPeriodEnd Boolean [not null, default: false]
+  canceledAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  billingUser BillingUser [not null]
+  plan Plan [not null]
+}
+
+Table Transaction {
+  id String [pk]
+  billingUserId String [not null]
+  invoiceId String
+  amount Float [not null]
+  currency String [not null, default: 'USD']
+  type TransactionType [not null]
+  status TransactionStatus [not null, default: 'PENDING']
+  state TransactionState [not null, default: 'CREATED']
+  description String
+  metadata Json
+  paymentMethodId String
+  stripePaymentId String [unique]
+  completedAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  billingUser BillingUser [not null]
+  invoice Invoice
+}
+
+Table User {
+  id String [pk]
+  name String [not null]
+  email String [unique, not null]
+  password String [not null]
+  settings user_settings
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  roles UserRole [not null]
 }
 
 Table UserRole {
@@ -43,13 +119,104 @@ Table UserRole {
   }
 }
 
+Table user_settings {
+  userId String [pk]
+  receiveNotifications Boolean [not null, default: false]
+  receiveEmails Boolean [not null, default: false]
+  terms Boolean [not null, default: false]
+  language Language [not null]
+  user User [not null]
+}
+
+Table VirtualAccount {
+  id String [pk]
+  billingUserId String [not null]
+  accountNumber String [unique, not null]
+  balance Float [not null, default: 0]
+  currency String [not null, default: 'USD']
+  status VirtualAccountStatus [not null, default: 'ACTIVE']
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  billingUser BillingUser [not null]
+}
+
+Enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  VOID
+  UNCOLLECTIBLE
+}
+
+Enum PlanInterval {
+  DAY
+  WEEK
+  MONTH
+  YEAR
+}
+
+Enum SubscriptionStatus {
+  CREATED
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  UNPAID
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+}
+
+Enum TransactionType {
+  PAYMENT
+  REFUND
+  CREDIT
+  DEBIT
+  TRANSFER
+  ADJUSTMENT
+}
+
+Enum TransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELED
+  REFUNDED
+}
+
+Enum TransactionState {
+  CREATED
+  PROCESSING
+  COMPLETED
+  ERROR
+  CANCELED
+}
+
+Enum VirtualAccountStatus {
+  ACTIVE
+  SUSPENDED
+  CLOSED
+}
+
 Enum Language {
   ES_ES
   EN_US
 }
 
-Ref: user_settings.userId - User.id [delete: Cascade]
+Ref: Invoice.billingUserId > BillingUser.id [delete: Cascade]
+
+Ref: Subscription.billingUserId > BillingUser.id [delete: Cascade]
+
+Ref: Subscription.planId > Plan.id
+
+Ref: Transaction.billingUserId > BillingUser.id [delete: Cascade]
+
+Ref: Transaction.invoiceId > Invoice.id
 
 Ref: UserRole.userId > User.id [delete: Cascade]
 
 Ref: UserRole.roleId > Role.id [delete: Cascade]
+
+Ref: user_settings.userId - User.id [delete: Cascade]
+
+Ref: VirtualAccount.billingUserId > BillingUser.id [delete: Cascade]

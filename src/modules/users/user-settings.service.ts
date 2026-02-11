@@ -23,11 +23,9 @@ export class UserSettingService {
             return await this.prismaService.userSettings.create({
                 data,
             });
-        } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError) {
-                if (error.code === 'P2002') {
-                    throw new ConflictException('User settings already exist');
-                }
+        } catch (error: any) {
+            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+                throw new ConflictException('User settings already exist');
             }
             throw error;
         }

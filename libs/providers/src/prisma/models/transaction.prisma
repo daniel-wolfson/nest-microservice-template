@@ -1,0 +1,55 @@
+// Transaction model
+model Transaction {
+  id              String            @id @default(uuid())
+  billingUserId   String
+  invoiceId       String?
+  amount          Float
+  currency        String            @default("USD")
+  type            TransactionType
+  status          TransactionStatus @default(PENDING)
+  state           TransactionState  @default(CREATED)
+  description     String?
+  metadata        Json?
+  paymentMethodId String?
+  stripePaymentId String?           @unique
+  completedAt     DateTime?         @db.Timestamptz(3)
+  createdAt       DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime          @updatedAt @db.Timestamptz(3)
+  
+  // Relations
+  billingUser BillingUser @relation(fields: [billingUserId], references: [id], onDelete: Cascade)
+  invoice     Invoice?    @relation(fields: [invoiceId], references: [id])
+  
+  @@index([billingUserId])
+  @@index([status])
+  @@index([state])
+}
+
+// Transaction Type enum
+enum TransactionType {
+  PAYMENT
+  REFUND
+  CREDIT
+  DEBIT
+  TRANSFER
+  ADJUSTMENT
+}
+
+// Transaction Status enum
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELED
+  REFUNDED
+}
+
+// Transaction State enum (for state machine)
+enum TransactionState {
+  CREATED
+  PROCESSING
+  COMPLETED
+  ERROR
+  CANCELED
+}

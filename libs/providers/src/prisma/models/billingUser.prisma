@@ -1,0 +1,16 @@
+// Billing User model
+model BillingUser {
+  id            String           @id @default(uuid())
+  userId        String           @unique
+  customerId    String?          // Stripe customer ID
+  balance       Float            @default(0)
+  currency      String           @default("USD")
+  createdAt     DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime         @updatedAt @db.Timestamptz(3)
+  
+  // Relations
+  subscriptions   Subscription[]
+  transactions    Transaction[]
+  invoices        Invoice[]
+  virtualAccounts VirtualAccount[]
+}
