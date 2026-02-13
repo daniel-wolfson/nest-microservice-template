@@ -3,7 +3,7 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
 import { AppConfigModule } from '../app-config/app-config.module';
 import { PassportModule } from '@nestjs/passport';
 import { AppConfigService } from '../app-config/app-config.service';
-import { LanguageService } from '@core/services/language.service';
+import { LanguageService } from '@/core/services/language.service';
 import { AuthenticationController } from './authentication.controller';
 import { AuthenticationService } from './services/authentication.service';
 import { TokenService } from './services/token.service';
@@ -25,8 +25,7 @@ import { JwtStrategy } from './services/jwt.strategy';
             imports: [AppConfigModule],
         }),
     ],
-    providers: [
-      JwtService, TokenService, LanguageService,  LocalStrategy, JwtStrategy, AuthenticationService],
+    providers: [JwtService, TokenService, LanguageService, LocalStrategy, JwtStrategy, AuthenticationService],
     controllers: [AuthenticationController],
 })
 export class AuthenticationModule {}

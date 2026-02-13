@@ -1,5 +1,5 @@
 import { Injectable, OnModuleDestroy, OnModuleInit, Inject } from '@nestjs/common';
-import { Kafka, Producer, ProducerRecord } from 'kafkajs';
+import { Producer, ProducerRecord } from 'kafkajs';
 import { KafkaSettings } from './kafka-settings';
 import { ProducerStrategyFactory } from './producer-strategy.factory';
 import { DeliverySemantics } from './delivery-semantics-strategy.enum';

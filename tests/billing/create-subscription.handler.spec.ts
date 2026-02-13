@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CreateSubscriptionHandler } from '../../src/modules/billing/commands/handlers/create-subscription.handler';
-import { CreateSubscriptionCommand } from '../../src/modules/billing/commands/impl/create-subscription.command';
-import { StripeService } from '../../src/modules/billing/services/stripe.service';
-import { BillingService } from '../../src/modules/billing/services/billing.service';
+import { CreateSubscriptionHandler } from '@/modules/billing/commands/handlers/create-subscription.handler';
+import { CreateSubscriptionCommand } from '@/modules/billing/commands/impl/create-subscription.command';
+import { StripeService } from '@/modules/billing/services/stripe.service';
+import { BillingService } from '@/modules/billing/services/billing.service';
 import { EventBus } from '@nestjs/cqrs';
 
 describe('CreateSubscriptionHandler', () => {

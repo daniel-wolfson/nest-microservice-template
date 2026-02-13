@@ -10,13 +10,13 @@ import {
 } from '@nestjs/common';
 import { LoginRequest } from './dto/login.request';
 import { LoginResponse } from './dto/login.response';
-import { ResponseInterceptor } from '@core/interceptors/response.interceptor';
+import { ResponseInterceptor } from '@/core/interceptors/response.interceptor';
 import { RegisterRequest } from './dto/register.request';
-import { LanguageTransformInterceptor } from '@core/interceptors/language.interceptor';
+import { LanguageTransformInterceptor } from '@/core/interceptors/language.interceptor';
 import { RegisterResponse } from './dto/register.response';
 import { RefreshTokenResponse } from './dto/refresh-token.response';
 import { AuthenticationService } from './services/authentication.service';
-import { AppError } from '@core/enums/app-error.enum';
+import { AppError } from '@/core/enums/app-error.enum';
 import { RefreshTokenRequest } from './dto/refresh-token.request';
 
 @Controller('authentication')

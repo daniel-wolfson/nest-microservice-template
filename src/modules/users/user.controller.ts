@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Logger, Patch, Post, Request, UseGuards, UseInterceptors } from '@nestjs/common';
 import { AuthenticationGuard } from '../authentication/authentication.guard';
-import { ResponseInterceptor } from '@core/interceptors/response.interceptor';
-import { LanguageTransformInterceptor } from '@core/interceptors/language.interceptor';
+import { ResponseInterceptor } from '@/core/interceptors/response.interceptor';
+import { LanguageTransformInterceptor } from '@/core/interceptors/language.interceptor';
 import { Prisma, User } from '@prisma/client';
 import { UserService } from './user.service';
 

@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import { BillingController } from '../../src/modules/billing/billing.controller';
+import { BillingController } from '@/modules/billing/billing.controller';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { CreateSubscriptionDto } from '../../src/modules/billing/dto/create-subscription.dto';
-import { DepositDto } from '../../src/modules/billing/dto/deposit.dto';
+import { CreateSubscriptionDto } from '@/modules/billing/dto/create-subscription.dto';
+import { DepositDto } from '@/modules/billing/dto/deposit.dto';
 
 describe('BillingController (Integration)', () => {
     let app: INestApplication;

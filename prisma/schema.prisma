@@ -5,10 +5,408 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+enum Language {
+  ES_ES
+  EN_US
+}
+
+model User {
+  id        String        @id @default(uuid())
+  name      String
+  email     String        @unique
+  password  String
+  settings  UserSettings?
+  createdAt DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime      @updatedAt @db.Timestamptz(3)
+  roles     UserRole[]
+}
+
+model UserSettings {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme     String   @default("light")
+  language  Language @default(EN_US)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@unique([userId, role])
+}
+
+// Billing User model
+model BillingUser {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  customerId String? // Stripe customer ID
+  balance    Float    @default(0)
+  currency   String   @default("USD")
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
+
+  // Relations
+  subscriptions   Subscription[]
+  transactions    Transaction[]
+  invoices        Invoice[]
+  virtualAccounts VirtualAccount[]
+  orders          Order[]
+
+  @@map("billing_users")
+}
+
+// Plan model
+model Plan {
+  id            String       @id @default(uuid())
+  name          String
+  description   String?
+  stripePriceId String?      @unique
+  price         Float
+  currency      String       @default("USD")
+  interval      PlanInterval @default(MONTH)
+  intervalCount Int          @default(1)
+  features      Json?
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime     @updatedAt @db.Timestamptz(3)
+
+  // Relations
+  subscriptions Subscription[]
+
+  @@index([isActive])
+}
+
+// Subscription model
+model Subscription {
+  id                   String             @id @default(uuid())
+  billingUserId        String
+  stripeSubscriptionId String?            @unique
+  stripePriceId        String?
+  planId               String
+  planName             String
+  status               SubscriptionStatus @default(CREATED)
+  currentPeriodStart   DateTime?          @db.Timestamptz(3)
+  currentPeriodEnd     DateTime?          @db.Timestamptz(3)
+  cancelAtPeriodEnd    Boolean            @default(false)
+  canceledAt           DateTime?          @db.Timestamptz(3)
+  createdAt            DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime           @updatedAt @db.Timestamptz(3)
+
+  // Relations
+  billingUser BillingUser @relation(fields: [billingUserId], references: [id], onDelete: Cascade)
+  plan        Plan        @relation(fields: [planId], references: [id])
+
+  @@index([billingUserId])
+  @@index([status])
+}
+
+// Transaction model
+model Transaction {
+  id              String            @id @default(uuid())
+  billingUserId   String
+  invoiceId       String?
+  amount          Float
+  currency        String            @default("USD")
+  type            TransactionType
+  status          TransactionStatus @default(PENDING)
+  state           TransactionState  @default(CREATED)
+  description     String?
+  metadata        Json?
+  paymentMethodId String?
+  stripePaymentId String?           @unique
+  completedAt     DateTime?         @db.Timestamptz(3)
+  createdAt       DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime          @updatedAt @db.Timestamptz(3)
+
+  // Relations
+  billingUser BillingUser @relation(fields: [billingUserId], references: [id], onDelete: Cascade)
+  invoice     Invoice?    @relation(fields: [invoiceId], references: [id])
+
+  @@index([billingUserId])
+  @@index([status])
+  @@index([state])
+}
+
+// Invoice model
+model Invoice {
+  id            String        @id @default(uuid())
+  billingUserId String
+  invoiceNumber String        @unique
+  amount        Float
+  currency      String        @default("USD")
+  status        InvoiceStatus @default(DRAFT)
+  description   String?
+  pdfUrl        String?
+  dueDate       DateTime?     @db.Timestamptz(3)
+  paidAt        DateTime?     @db.Timestamptz(3)
+  createdAt     DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime      @updatedAt @db.Timestamptz(3)
+
+  // Relations
+  billingUser  BillingUser   @relation(fields: [billingUserId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([billingUserId])
+  @@index([status])
+  @@index([invoiceNumber])
+}
+
+// Virtual Account model
+model VirtualAccount {
+  id            String               @id @default(uuid())
+  billingUserId String
+  accountNumber String               @unique
+  balance       Float                @default(0)
+  currency      String               @default("USD")
+  status        VirtualAccountStatus @default(ACTIVE)
+  createdAt     DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime             @updatedAt @db.Timestamptz(3)
+
+  // Relations
+  billingUser BillingUser @relation(fields: [billingUserId], references: [id], onDelete: Cascade)
+
+  @@index([billingUserId])
+  @@index([accountNumber])
+  @@index([status])
+}
+
+// Order model tailored for hospitality workflows
+model Order {
+  id              String      @id @default(uuid())
+  billingUserId   String?
+  orderNumber     String      @unique
+  guestName       String
+  roomNumber      String?
+  tableNumber     String?
+  partySize       Int?
+  status          OrderStatus @default(PENDING)
+  type            OrderType   @default(ROOM_SERVICE)
+  source          OrderSource @default(IN_PERSON)
+  totalAmount     Float       @default(0)
+  currency        String      @default("USD")
+  serviceDate     DateTime?   @db.Timestamptz(3)
+  scheduledAt     DateTime?   @db.Timestamptz(3)
+  completedAt     DateTime?   @db.Timestamptz(3)
+  notes           String?
+  specialRequests String?
+  createdAt       DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime    @updatedAt @db.Timestamptz(3)
+
+  // Relations
+  billingUser BillingUser? @relation(fields: [billingUserId], references: [id], onDelete: SetNull)
+  items       OrderItem[]
+
+  @@index([billingUserId])
+  @@index([status])
+  @@index([serviceDate])
+}
+
+// Order item model linked to hospitality orders
+model OrderItem {
+  id              String            @id @default(uuid())
+  orderId         String
+  productId       String
+  itemName        String
+  description     String?
+  category        OrderItemCategory @default(FOOD)
+  quantity        Int               @default(1)
+  unitPrice       Float             @default(0)
+  taxAmount       Float             @default(0)
+  discountAmount  Float             @default(0)
+  totalPrice      Float             @default(0)
+  fulfillmentType FulfillmentType   @default(SERVICE)
+  isComplimentary Boolean           @default(false)
+  preparedAt      DateTime?         @db.Timestamptz(3)
+  deliveredAt     DateTime?         @db.Timestamptz(3)
+  notes           String?
+  staffAssigned   String?
+  createdAt       DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime          @updatedAt @db.Timestamptz(3)
+
+  // Relations
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([category])
+}
+
+// Generic product catalog model
+model Product {
+  id                 String          @id @default(uuid())
+  externalId         String?
+  sku                String?         @unique
+  name               String
+  description        String?
+  category           ProductCategory
+  type               ProductType     @default(GOOD)
+  status             ProductStatus   @default(ACTIVE)
+  basePrice          Float           @default(0)
+  currency           String          @default("USD")
+  cost               Float?
+  taxCode            String?
+  unitOfMeasure      String?         @default("EA")
+  isTaxable          Boolean         @default(true)
+  isInventoryTracked Boolean         @default(false)
+  inventoryQuantity  Int             @default(0)
+  reorderPoint       Int?
+  leadTimeDays       Int?
+  weightInKg         Float?
+  volumeInLiters     Float?
+  imageUrl           String?
+  tags               String?
+  attributes         Json?
+  createdAt          DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime        @updatedAt @db.Timestamptz(3)
+  orderItems         OrderItem[]
+}
+
+// Enums
+enum PlanInterval {
+  DAY
+  WEEK
+  MONTH
+  YEAR
+}
+
+enum SubscriptionStatus {
+  CREATED
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  UNPAID
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+}
+
+enum TransactionType {
+  PAYMENT
+  REFUND
+  CREDIT
+  DEBIT
+  TRANSFER
+  ADJUSTMENT
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELED
+  REFUNDED
+}
+
+enum TransactionState {
+  CREATED
+  PROCESSING
+  COMPLETED
+  ERROR
+  CANCELED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  VOID
+  UNCOLLECTIBLE
+}
+
+enum VirtualAccountStatus {
+  ACTIVE
+  SUSPENDED
+  CLOSED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+  REFUNDED
+}
+
+enum OrderType {
+  ROOM_SERVICE
+  RESTAURANT
+  BAR
+  SPA
+  HOUSEKEEPING
+  AMENITY
+  TRANSPORTATION
+  OTHER
+}
+
+enum OrderSource {
+  IN_PERSON
+  PHONE
+  MOBILE_APP
+  WEB_PORTAL
+  KIOSK
+  THIRD_PARTY
+}
+
+enum OrderItemCategory {
+  FOOD
+  BEVERAGE
+  ALCOHOL
+  SPA_TREATMENT
+  HOUSEKEEPING
+  AMENITY
+  RETAIL
+  TRANSPORT
+  OTHER
+}
+
+enum FulfillmentType {
+  SERVICE
+  PRODUCT
+  RENTAL
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  DISCONTINUED
+  OUT_OF_STOCK
+}
+
+enum ProductType {
+  GOOD
+  SERVICE
+  PACKAGE
+  DIGITAL
+  FEE
+  OTHER
+}
+
+enum ProductCategory {
+  FOOD
+  BEVERAGE
+  ALCOHOL
+  AMENITY
+  ROOM_SUPPLY
+  SPA
+  TRANSPORT
+  RETAIL
+  EVENT
+  OTHER
 }

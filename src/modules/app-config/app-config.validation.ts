@@ -1,5 +1,5 @@
 import * as Joi from 'joi';
-import { Environment } from '@core/enums/environment.enum';
+import { Environment } from '@/core/enums/environment.enum';
 
 export const appConfigValidationSchema = Joi.object({
     ENVIRONMENT: Joi.string().valid(Environment.LOCALHOST, Environment.PRODUCTION).required(),

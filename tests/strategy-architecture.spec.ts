@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { KafkaProducerService } from '@/modules/kafka/kafka-producer.service';
-import { ProducerStrategyFactory } from '@/modules/kafka/producer-strategy.factory';
-import { KafkaSettings } from '@/modules/kafka/kafka-settings';
-import { StructuredLogger } from '@/common/winston.logger';
+import { KafkaProducerService } from '../src/modules/kafka/kafka-producer.service';
+import { ProducerStrategyFactory } from '../src/modules/kafka/producer-strategy.factory';
+import { KafkaSettings } from '../src/modules/kafka/kafka-settings';
+import { StructuredLogger } from '../src/common/winston.logger';
 
 describe('KafkaProducerService', () => {
     let service: KafkaProducerService;

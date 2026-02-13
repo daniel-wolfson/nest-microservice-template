@@ -7,21 +7,20 @@ import {
     NotFoundException,
     UnauthorizedException,
 } from '@nestjs/common';
-import { AppError } from '@core/enums/app-error.enum';
+import { AppError } from '@/core/enums/app-error.enum';
 import { compare, hash } from 'bcrypt';
 import { AppConfigService } from '../../app-config/app-config.service';
-import { LanguageService } from '@core/services/language.service';
+import { LanguageService } from '@/core/services/language.service';
 import { LoginRequest } from '../dto/login.request';
 import { LoginResponse } from '../dto/login.response';
 import { RegisterRequest } from '../dto/register.request';
 import { RegisterResponse } from '../dto/register.response';
-import { PrismaError } from '@core/enums/prisma-error.enum';
+import { PrismaError } from '@/core/enums/prisma-error.enum';
 import { RefreshTokenResponse } from '../dto/refresh-token.response';
 import { TokenService } from './token.service';
 import { TokenExpiredError } from '@nestjs/jwt';
 import { RefreshTokenRequest } from '../dto/refresh-token.request';
 import { PrismaService } from 'nestjs-prisma';
-import { UserRole } from '@prisma/client';
 import { UserWithRoles } from '@/modules/users/user.type';
 
 @Injectable()

@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { GoogleAnalyticsService } from '@core/services/google-analytics.service';
+import { GoogleAnalyticsService } from '@/core/services/google-analytics.service';
 
 @Controller('analytics')
 export class GoogleAnalyticsController {

@@ -4,7 +4,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import { AuthenticationController } from './authentication.controller';
 import { AuthenticationService } from './services/authentication.service';
 import { LoginRequest } from './dto/login.request';
-import { LanguageService } from '@core/services/language.service';
+import { LanguageService } from '@/core/services/language.service';
 
 describe('AuthenticationController', () => {
     let controller: AuthenticationController;
