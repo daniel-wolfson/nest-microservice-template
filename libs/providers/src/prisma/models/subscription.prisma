@@ -1,23 +1,23 @@
 // Subscription model
 model Subscription {
-  id                   String            @id @default(uuid())
+  id                   String             @id @default(uuid())
   billingUserId        String
-  stripeSubscriptionId String?           @unique
+  stripeSubscriptionId String?            @unique
   stripePriceId        String?
   planId               String
   planName             String
   status               SubscriptionStatus @default(CREATED)
-  currentPeriodStart   DateTime?         @db.Timestamptz(3)
-  currentPeriodEnd     DateTime?         @db.Timestamptz(3)
-  cancelAtPeriodEnd    Boolean           @default(false)
-  canceledAt           DateTime?         @db.Timestamptz(3)
-  createdAt            DateTime          @default(now()) @db.Timestamptz(3)
-  updatedAt            DateTime          @updatedAt @db.Timestamptz(3)
-  
+  currentPeriodStart   DateTime?          @db.Timestamptz(3)
+  currentPeriodEnd     DateTime?          @db.Timestamptz(3)
+  cancelAtPeriodEnd    Boolean            @default(false)
+  canceledAt           DateTime?          @db.Timestamptz(3)
+  createdAt            DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime           @updatedAt @db.Timestamptz(3)
+
   // Relations
   billingUser BillingUser @relation(fields: [billingUserId], references: [id], onDelete: Cascade)
   plan        Plan        @relation(fields: [planId], references: [id])
-  
+
   @@index([billingUserId])
   @@index([status])
 }

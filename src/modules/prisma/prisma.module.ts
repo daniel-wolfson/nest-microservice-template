@@ -1,5 +1,5 @@
 import { DynamicModule, Module, Provider } from '@nestjs/common';
-import { PrismaModuleAsyncOptions, PrismaModuleOptions, PrismaOptionsFactory } from './interfaces';
+import { PrismaModuleAsyncOptions, PrismaModuleOptions, PrismaOptionsFactory } from './prisma.options';
 import { PRISMA_SERVICE_OPTIONS } from './prisma.constants';
 import { PrismaService } from './prisma.service';
 

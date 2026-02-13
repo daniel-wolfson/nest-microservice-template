@@ -2,7 +2,6 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
 import { Prisma } from '@prisma/client';
 import { validate as isUUID } from 'uuid';
-import { User } from '@src/core/graphql/models/user';
 
 @Injectable()
 export class UserService {

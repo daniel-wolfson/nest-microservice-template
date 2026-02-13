@@ -1,9 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-    TransactionStateMachine,
-    TransactionState,
-} from '../../src/modules/billing/state-machines/transaction.state-machine';
-import { PrismaService } from '@src/modules/prisma/prisma.service';
+import { TransactionStateMachine, TransactionState } from '@/modules/billing/state-machines/transaction.state-machine';
+import { PrismaService } from '@/modules/prisma/prisma.service';
 
 describe('TransactionStateMachine', () => {
     let stateMachine: TransactionStateMachine;

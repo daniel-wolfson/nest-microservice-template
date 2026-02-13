@@ -1,27 +1,11 @@
 // Example model from current project
 model User {
-  id                  String        @id @default(uuid())
-  name                String
-  email               String        @unique
-  password            String
-  settings            UserSettings?
-  createdAt           DateTime      @default(now()) @db.Timestamptz(3)
-  updatedAt           DateTime      @updatedAt @db.Timestamptz(3)
-  roles               UserRole[]    
-}
-
-model BillingUser {
-  id            String          @id @default(cuid())
-  userId        String          @unique // Reference to main User table
-  customerId    String?         @unique // Stripe customer ID
-  balance       Float           @default(0)
-  currency      String          @default("USD")
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  subscriptions Subscription[]
-  transactions  Transaction[]
-  invoices      Invoice[]
-  virtualAccounts VirtualAccount[]
-
-  @@map("billing_users")
+  id        String        @id @default(uuid())
+  name      String
+  email     String        @unique
+  password  String
+  settings  UserSettings?
+  createdAt DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime      @updatedAt @db.Timestamptz(3)
+  roles     UserRole[]
 }

@@ -2,7 +2,7 @@
 //// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 //// ------------------------------------------------------
 
-Table BillingUser {
+Table billing_users {
   id String [pk]
   userId String [unique, not null]
   customerId String
@@ -14,6 +14,7 @@ Table BillingUser {
   transactions Transaction [not null]
   invoices Invoice [not null]
   virtualAccounts VirtualAccount [not null]
+  orders Order [not null]
 }
 
 Table Invoice {
@@ -29,8 +30,56 @@ Table Invoice {
   paidAt DateTime
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
-  billingUser BillingUser [not null]
+  billingUser billing_users [not null]
   transactions Transaction [not null]
+}
+
+Table Order {
+  id String [pk]
+  billingUserId String
+  orderNumber String [unique, not null]
+  guestName String [not null]
+  roomNumber String
+  tableNumber String
+  partySize Int
+  status OrderStatus [not null, default: 'PENDING']
+  type OrderType [not null, default: 'ROOM_SERVICE']
+  source OrderSource [not null, default: 'IN_PERSON']
+  totalAmount Float [not null, default: 0]
+  currency String [not null, default: 'USD']
+  serviceDate DateTime
+  scheduledAt DateTime
+  completedAt DateTime
+  notes String
+  specialRequests String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  billingUser billing_users
+  items OrderItem [not null]
+}
+
+Table OrderItem {
+  id String [pk]
+  orderId String [not null]
+  productId String [not null]
+  itemName String [not null]
+  description String
+  category OrderItemCategory [not null, default: 'FOOD']
+  quantity Int [not null, default: 1]
+  unitPrice Float [not null, default: 0]
+  taxAmount Float [not null, default: 0]
+  discountAmount Float [not null, default: 0]
+  totalPrice Float [not null, default: 0]
+  fulfillmentType FulfillmentType [not null, default: 'SERVICE']
+  isComplimentary Boolean [not null, default: false]
+  preparedAt DateTime
+  deliveredAt DateTime
+  notes String
+  staffAssigned String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  order Order [not null]
+  product Product [not null]
 }
 
 Table Plan {
@@ -47,6 +96,35 @@ Table Plan {
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
   subscriptions Subscription [not null]
+}
+
+Table Product {
+  id String [pk]
+  externalId String
+  sku String [unique]
+  name String [not null]
+  description String
+  category ProductCategory [not null]
+  type ProductType [not null, default: 'GOOD']
+  status ProductStatus [not null, default: 'ACTIVE']
+  basePrice Float [not null, default: 0]
+  currency String [not null, default: 'USD']
+  cost Float
+  taxCode String
+  unitOfMeasure String [default: 'EA']
+  isTaxable Boolean [not null, default: true]
+  isInventoryTracked Boolean [not null, default: false]
+  inventoryQuantity Int [not null, default: 0]
+  reorderPoint Int
+  leadTimeDays Int
+  weightInKg Float
+  volumeInLiters Float
+  imageUrl String
+  tags String
+  attributes Json
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  orderItems OrderItem [not null]
 }
 
 Table Role {
@@ -72,7 +150,7 @@ Table Subscription {
   canceledAt DateTime
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
-  billingUser BillingUser [not null]
+  billingUser billing_users [not null]
   plan Plan [not null]
 }
 
@@ -92,7 +170,7 @@ Table Transaction {
   completedAt DateTime
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
-  billingUser BillingUser [not null]
+  billingUser billing_users [not null]
   invoice Invoice
 }
 
@@ -137,7 +215,7 @@ Table VirtualAccount {
   status VirtualAccountStatus [not null, default: 'ACTIVE']
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
-  billingUser BillingUser [not null]
+  billingUser billing_users [not null]
 }
 
 Enum InvoiceStatus {
@@ -148,11 +226,87 @@ Enum InvoiceStatus {
   UNCOLLECTIBLE
 }
 
+Enum OrderStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+  REFUNDED
+}
+
+Enum OrderType {
+  ROOM_SERVICE
+  RESTAURANT
+  BAR
+  SPA
+  HOUSEKEEPING
+  AMENITY
+  TRANSPORTATION
+  OTHER
+}
+
+Enum OrderSource {
+  IN_PERSON
+  PHONE
+  MOBILE_APP
+  WEB_PORTAL
+  KIOSK
+  THIRD_PARTY
+}
+
+Enum OrderItemCategory {
+  FOOD
+  BEVERAGE
+  ALCOHOL
+  SPA_TREATMENT
+  HOUSEKEEPING
+  AMENITY
+  RETAIL
+  TRANSPORT
+  OTHER
+}
+
+Enum FulfillmentType {
+  SERVICE
+  PRODUCT
+  RENTAL
+}
+
 Enum PlanInterval {
   DAY
   WEEK
   MONTH
   YEAR
+}
+
+Enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  DISCONTINUED
+  OUT_OF_STOCK
+}
+
+Enum ProductType {
+  GOOD
+  SERVICE
+  PACKAGE
+  DIGITAL
+  FEE
+  OTHER
+}
+
+Enum ProductCategory {
+  FOOD
+  BEVERAGE
+  ALCOHOL
+  AMENITY
+  ROOM_SUPPLY
+  SPA
+  TRANSPORT
+  RETAIL
+  EVENT
+  OTHER
 }
 
 Enum SubscriptionStatus {
@@ -203,13 +357,19 @@ Enum Language {
   EN_US
 }
 
-Ref: Invoice.billingUserId > BillingUser.id [delete: Cascade]
+Ref: Invoice.billingUserId > billing_users.id [delete: Cascade]
 
-Ref: Subscription.billingUserId > BillingUser.id [delete: Cascade]
+Ref: Order.billingUserId > billing_users.id [delete: Set Null]
+
+Ref: OrderItem.orderId > Order.id [delete: Cascade]
+
+Ref: OrderItem.productId > Product.id [delete: Restrict]
+
+Ref: Subscription.billingUserId > billing_users.id [delete: Cascade]
 
 Ref: Subscription.planId > Plan.id
 
-Ref: Transaction.billingUserId > BillingUser.id [delete: Cascade]
+Ref: Transaction.billingUserId > billing_users.id [delete: Cascade]
 
 Ref: Transaction.invoiceId > Invoice.id
 
@@ -219,4 +379,4 @@ Ref: UserRole.roleId > Role.id [delete: Cascade]
 
 Ref: user_settings.userId - User.id [delete: Cascade]
 
-Ref: VirtualAccount.billingUserId > BillingUser.id [delete: Cascade]
+Ref: VirtualAccount.billingUserId > billing_users.id [delete: Cascade]

@@ -8,7 +8,7 @@ import { StripeService } from './services/stripe.service';
 import { VirtualAccountService } from './services/virtual-account.service';
 import { InvoiceService } from './services/invoice.service';
 import { TransactionStateMachine } from './state-machines/transaction.state-machine';
-import { PrismaModule } from '@src/modules/prisma/prisma.module';
+import { PrismaModule } from '@/modules/prisma/prisma.module';
 import { CommandHandlers } from './commands/handlers';
 import { QueryHandlers } from './queries/handlers';
 import { EventHandlers } from './events/handlers';
@@ -18,7 +18,9 @@ import { BillingMessageController } from './billing-message.controller';
 @Module({
     imports: [
         CqrsModule,
-        PrismaModule,
+        PrismaModule.forRoot({
+            prismaServiceOptions: {},
+        }),
         ConfigModule,
         ClientsModule.registerAsync([
             {

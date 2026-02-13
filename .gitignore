@@ -38,3 +38,5 @@ lerna-debug.log*
 .vs/
 
 /generated/prisma
+
+/generated/prisma

@@ -22,7 +22,7 @@ import { TokenExpiredError } from '@nestjs/jwt';
 import { RefreshTokenRequest } from '../dto/refresh-token.request';
 import { PrismaService } from 'nestjs-prisma';
 import { UserRole } from '@prisma/client';
-import { UserWithRoles } from '@src/modules/users/user.type';
+import { UserWithRoles } from '@/modules/users/user.type';
 
 @Injectable()
 export class AuthenticationService {

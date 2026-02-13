@@ -2,7 +2,7 @@
 // GraphQL-step 10 - Configure Resolver Field Mapping
 // Implement resolver classes with @Resolver decorators and GraphQL operation methods
 import { Resolver, Query, Args, Int, ResolveField, Parent, Mutation } from '@nestjs/graphql';
-import { User } from '@src/core/graphql/models/user';
+import { User } from '@/core/graphql/models/user';
 //import { CreateUserInput } from '../graphql/utils/CreateUserInput';
 import { UserService } from './user.service';
 import { UserSettingService } from './user-settings.service';

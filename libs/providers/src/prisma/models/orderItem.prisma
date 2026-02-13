@@ -1,0 +1,50 @@
+// Order item model linked to hospitality orders
+model OrderItem {
+  id              String            @id @default(uuid())
+  orderId         String
+  productId       String
+  itemName        String
+  description     String?
+  category        OrderItemCategory @default(FOOD)
+  quantity        Int               @default(1)
+  unitPrice       Float             @default(0)
+  taxAmount       Float             @default(0)
+  discountAmount  Float             @default(0)
+  totalPrice      Float             @default(0)
+  fulfillmentType FulfillmentType   @default(SERVICE)
+  isComplimentary Boolean           @default(false)
+  preparedAt      DateTime?         @db.Timestamptz(3)
+  deliveredAt     DateTime?         @db.Timestamptz(3)
+  notes           String?
+  staffAssigned   String?
+  createdAt       DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime          @updatedAt @db.Timestamptz(3)
+
+  // Relations
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([category])
+}
+
+// Item category taxonomy for hospitality outlets
+enum OrderItemCategory {
+  FOOD
+  BEVERAGE
+  ALCOHOL
+  SPA_TREATMENT
+  HOUSEKEEPING
+  AMENITY
+  RETAIL
+  TRANSPORT
+  OTHER
+}
+
+// How the item is fulfilled
+enum FulfillmentType {
+  SERVICE
+  PRODUCT
+  RENTAL
+}

@@ -4,8 +4,8 @@ import { join } from 'path';
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { ENTITIES } from '@lib/entities';
 import { ConfigService } from '@nestjs/config';
-//import { User } from '@src/modules/graphql/models/user';
-//import { UserSetting } from '@src/modules/graphql/models/user-setting';
+//import { User } from '@/modules/graphql/models/user';
+//import { UserSetting } from '@/modules/graphql/models/user-setting';
 
 const environment = process.env.NODE_ENV || 'development';
 config({ path: join(process.cwd(), `.env.${environment}`) });

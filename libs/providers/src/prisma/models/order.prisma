@@ -1,0 +1,62 @@
+// Order model tailored for hospitality workflows
+model Order {
+  id              String      @id @default(uuid())
+  billingUserId   String?
+  orderNumber     String      @unique
+  guestName       String
+  roomNumber      String?
+  tableNumber     String?
+  partySize       Int?
+  status          OrderStatus @default(PENDING)
+  type            OrderType   @default(ROOM_SERVICE)
+  source          OrderSource @default(IN_PERSON)
+  totalAmount     Float       @default(0)
+  currency        String      @default("USD")
+  serviceDate     DateTime?   @db.Timestamptz(3)
+  scheduledAt     DateTime?   @db.Timestamptz(3)
+  completedAt     DateTime?   @db.Timestamptz(3)
+  notes           String?
+  specialRequests String?
+  createdAt       DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime    @updatedAt @db.Timestamptz(3)
+
+  // Relations
+  billingUser BillingUser? @relation(fields: [billingUserId], references: [id], onDelete: SetNull)
+  items       OrderItem[]
+
+  @@index([billingUserId])
+  @@index([status])
+  @@index([serviceDate])
+}
+
+// Order level status transitions
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+  REFUNDED
+}
+
+// Hospitality order categories
+enum OrderType {
+  ROOM_SERVICE
+  RESTAURANT
+  BAR
+  SPA
+  HOUSEKEEPING
+  AMENITY
+  TRANSPORTATION
+  OTHER
+}
+
+// Order intake channels
+enum OrderSource {
+  IN_PERSON
+  PHONE
+  MOBILE_APP
+  WEB_PORTAL
+  KIOSK
+  THIRD_PARTY
+}

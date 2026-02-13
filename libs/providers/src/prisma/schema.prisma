@@ -14,8 +14,7 @@ datasource db {
 
 // Prisma Client generator
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["omitApi"]
+  provider = "prisma-client-js"
 }
 
 // Optional: DBML generator for visual diagrams

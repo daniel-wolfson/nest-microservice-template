@@ -1,0 +1,61 @@
+// Generic product catalog model
+model Product {
+  id                 String          @id @default(uuid())
+  externalId         String?
+  sku                String?         @unique
+  name               String
+  description        String?
+  category           ProductCategory
+  type               ProductType     @default(GOOD)
+  status             ProductStatus   @default(ACTIVE)
+  basePrice          Float           @default(0)
+  currency           String          @default("USD")
+  cost               Float?
+  taxCode            String?
+  unitOfMeasure      String?         @default("EA")
+  isTaxable          Boolean         @default(true)
+  isInventoryTracked Boolean         @default(false)
+  inventoryQuantity  Int             @default(0)
+  reorderPoint       Int?
+  leadTimeDays       Int?
+  weightInKg         Float?
+  volumeInLiters     Float?
+  imageUrl           String?
+  tags               String?
+  attributes         Json?
+  createdAt          DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime        @updatedAt @db.Timestamptz(3)
+  orderItems         OrderItem[]
+}
+
+// Product availability lifecycle
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  DISCONTINUED
+  OUT_OF_STOCK
+}
+
+// Product composition
+enum ProductType {
+  GOOD
+  SERVICE
+  PACKAGE
+  DIGITAL
+  FEE
+  OTHER
+}
+
+// Broad hospitality-friendly categories
+enum ProductCategory {
+  FOOD
+  BEVERAGE
+  ALCOHOL
+  AMENITY
+  ROOM_SUPPLY
+  SPA
+  TRANSPORT
+  RETAIL
+  EVENT
+  OTHER
+}

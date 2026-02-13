@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '@src/modules/prisma/prisma.service';
+import { PrismaService } from '@/modules/prisma/prisma.service';
 import { InvoiceStatus, TransactionStatus } from '@prisma/client';
 
 export enum TransactionState {

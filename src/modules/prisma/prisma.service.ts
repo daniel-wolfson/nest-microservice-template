@@ -2,7 +2,7 @@ import { Inject, Injectable, OnModuleDestroy, OnModuleInit, Optional } from '@ne
 import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
-import { PrismaServiceOptions } from './interfaces';
+import { PrismaServiceOptions } from './prisma.options';
 import { PRISMA_SERVICE_OPTIONS } from './prisma.constants';
 import prismaConfig from '../../../prisma.config';
 
