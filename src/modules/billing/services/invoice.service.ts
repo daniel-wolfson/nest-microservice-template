@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BillingService } from './billing.service';
-import { InvoiceStatus } from '@prisma/client';
+import { InvoiceStatus, Invoice, Prisma } from '@prisma/client';
 
 @Injectable()
 export class InvoiceService {
@@ -9,7 +9,7 @@ export class InvoiceService {
 
     constructor(private readonly prisma: PrismaService, private readonly billingService: BillingService) {}
 
-    async createInvoice(userId: string, amount: number, description?: string, dueDate?: Date) {
+    async createInvoice(userId: string, amount: number, description?: string, dueDate?: Date): Promise<Invoice> {
         const billingUser = await this.billingService.getOrCreateBillingUser(userId);
 
         const invoiceNumber = await this.generateInvoiceNumber();
@@ -31,7 +31,7 @@ export class InvoiceService {
         return invoice;
     }
 
-    async getUserInvoices(userId: string) {
+    async getUserInvoices(userId: string): Promise<Prisma.InvoiceGetPayload<{ include: { transactions: true } }>[]> {
         const billingUser = await this.billingService.getOrCreateBillingUser(userId);
 
         return this.prisma.invoice.findMany({
@@ -47,7 +47,9 @@ export class InvoiceService {
         });
     }
 
-    async getInvoiceById(invoiceId: string) {
+    async getInvoiceById(invoiceId: string): Promise<Prisma.InvoiceGetPayload<{
+        include: { transactions: true; billingUser: true };
+    }> | null> {
         return this.prisma.invoice.findUnique({
             where: { id: invoiceId },
             include: {
@@ -57,14 +59,14 @@ export class InvoiceService {
         });
     }
 
-    async updateInvoiceStatus(invoiceId: string, status: InvoiceStatus) {
+    async updateInvoiceStatus(invoiceId: string, status: InvoiceStatus): Promise<Invoice> {
         return this.prisma.invoice.update({
             where: { id: invoiceId },
             data: { status },
         });
     }
 
-    async markInvoiceAsPaid(invoiceId: string) {
+    async markInvoiceAsPaid(invoiceId: string): Promise<Invoice> {
         return this.prisma.invoice.update({
             where: { id: invoiceId },
             data: {
@@ -113,7 +115,7 @@ export class InvoiceService {
         return `INV-${year}${month}-${sequence}`;
     }
 
-    async voidInvoice(invoiceId: string) {
+    async voidInvoice(invoiceId: string): Promise<Invoice> {
         return this.prisma.invoice.update({
             where: { id: invoiceId },
             data: {
@@ -122,7 +124,7 @@ export class InvoiceService {
         });
     }
 
-    async getUnpaidInvoices() {
+    async getUnpaidInvoices(): Promise<Prisma.InvoiceGetPayload<{ include: { billingUser: true } }>[]> {
         return this.prisma.invoice.findMany({
             where: {
                 status: 'OPEN',
