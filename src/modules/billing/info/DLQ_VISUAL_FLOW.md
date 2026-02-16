@@ -260,6 +260,7 @@
 ## Log Examples
 
 ### Success (No DLQ)
+
 ```
 [TravelBookingSaga] 🔄 Starting Compensation Process...
 [CarRentalService] Compensating: Canceling car rental reservation CAR-789
@@ -272,6 +273,7 @@
 ```
 
 ### Failure (With DLQ)
+
 ```
 [TravelBookingSaga] 🔄 Starting Compensation Process...
 [CarRentalService] Compensating: Canceling car rental reservation CAR-789

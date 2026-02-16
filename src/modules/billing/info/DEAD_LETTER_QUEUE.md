@@ -50,25 +50,27 @@ When a compensation transaction fails during the Saga rollback process, the syst
 Event published when a compensation transaction fails.
 
 **Properties**:
-- `bookingId`: The travel booking ID
-- `compensationType`: Type of compensation ('flight' | 'hotel' | 'car')
-- `reservationId`: The reservation ID that failed to cancel
-- `errorMessage`: Human-readable error message
-- `errorStack`: Optional stack trace for debugging
-- `timestamp`: When the failure occurred
-- `retryCount`: Number of retry attempts (default 0)
+
+-   `bookingId`: The travel booking ID
+-   `compensationType`: Type of compensation ('flight' | 'hotel' | 'car')
+-   `reservationId`: The reservation ID that failed to cancel
+-   `errorMessage`: Human-readable error message
+-   `errorStack`: Optional stack trace for debugging
+-   `timestamp`: When the failure occurred
+-   `retryCount`: Number of retry attempts (default 0)
 
 **Example**:
+
 ```typescript
 new CompensationFailedEvent(
-  'TRV-1234567890-ABC',
-  'flight',
-  'FLT-123',
-  'Flight cancellation API unavailable',
-  'Error: Flight cancellation API unavailable\n    at ...',
-  new Date(),
-  0
-)
+    'TRV-1234567890-ABC',
+    'flight',
+    'FLT-123',
+    'Flight cancellation API unavailable',
+    'Error: Flight cancellation API unavailable\n    at ...',
+    new Date(),
+    0,
+);
 ```
 
 ### 2. CompensationFailedHandler
@@ -78,43 +80,41 @@ new CompensationFailedEvent(
 Event handler that processes compensation failures.
 
 **Current Implementation**:
-- Logs detailed error information
-- Warns about need for manual intervention
-- Provides TODO comments for production features
+
+-   Logs detailed error information
+-   Warns about need for manual intervention
+-   Provides TODO comments for production features
 
 **Production Recommendations**:
+
 ```typescript
 // 1. Store in database
 await this.deadLetterQueueRepository.save({
-  bookingId: event.bookingId,
-  compensationType: event.compensationType,
-  reservationId: event.reservationId,
-  errorMessage: event.errorMessage,
-  errorStack: event.errorStack,
-  timestamp: event.timestamp,
-  retryCount: event.retryCount,
-  status: 'pending',
+    bookingId: event.bookingId,
+    compensationType: event.compensationType,
+    reservationId: event.reservationId,
+    errorMessage: event.errorMessage,
+    errorStack: event.errorStack,
+    timestamp: event.timestamp,
+    retryCount: event.retryCount,
+    status: 'pending',
 });
 
 // 2. Send alert to operations team
 await this.alertService.sendAlert({
-  severity: 'high',
-  title: 'Compensation Failed',
-  message: `Failed to compensate ${event.compensationType}`,
-  metadata: event,
+    severity: 'high',
+    title: 'Compensation Failed',
+    message: `Failed to compensate ${event.compensationType}`,
+    metadata: event,
 });
 
 // 3. Schedule automatic retry
 if (event.retryCount < 3) {
-  await this.retryScheduler.scheduleRetry(event, event.retryCount + 1);
+    await this.retryScheduler.scheduleRetry(event, event.retryCount + 1);
 }
 
 // 4. Update saga state
-await this.sagaStateRepository.updateCompensationStatus(
-  event.bookingId,
-  event.compensationType,
-  'failed',
-);
+await this.sagaStateRepository.updateCompensationStatus(event.bookingId, event.compensationType, 'failed');
 ```
 
 ### 3. Updated TravelBookingSaga
@@ -129,14 +129,14 @@ private async compensate(
   carRentalReservation: CarRentalReservationResult | null,
 ): Promise<void> {
   // ... compensation logic
-  
+
   try {
     await this.flightService.cancelFlight(reservationId);
     this.logger.log(`✓ Compensated: Flight booking cancelled`);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
-    
+
     // Publish to Dead Letter Queue
     const deadLetterEvent = new CompensationFailedEvent(
       bookingId,
@@ -154,7 +154,9 @@ private async compensate(
 ## Behavior
 
 ### Success Case
+
 When compensations succeed, no events are published:
+
 ```
 [TravelBookingSaga] 🔄 Starting Compensation Process...
 [HotelService] Compensating: Canceling hotel reservation HTL-456
@@ -165,7 +167,9 @@ When compensations succeed, no events are published:
 ```
 
 ### Failure Case
+
 When a compensation fails, event is published:
+
 ```
 [TravelBookingSaga] 🔄 Starting Compensation Process...
 [HotelService] Compensating: Canceling hotel reservation HTL-456
@@ -190,15 +194,17 @@ When a compensation fails, event is published:
 **Location**: `tests/billing/travel-booking-dlq.spec.ts`
 
 Tests include:
-- ✅ Publishing CompensationFailedEvent when flight cancellation fails
-- ✅ Publishing when hotel cancellation fails
-- ✅ Publishing when car cancellation fails
-- ✅ Publishing multiple events when multiple compensations fail
-- ✅ Including error stack in events
-- ✅ Including booking ID in events
-- ✅ Continuing compensation even when one fails
+
+-   ✅ Publishing CompensationFailedEvent when flight cancellation fails
+-   ✅ Publishing when hotel cancellation fails
+-   ✅ Publishing when car cancellation fails
+-   ✅ Publishing multiple events when multiple compensations fail
+-   ✅ Including error stack in events
+-   ✅ Including booking ID in events
+-   ✅ Continuing compensation even when one fails
 
 **Run tests**:
+
 ```bash
 npm test travel-booking-dlq
 ```
@@ -220,6 +226,7 @@ Then trigger a saga failure and observe the DLQ event being published.
 ## Production Implementation Checklist
 
 ### 1. Database Schema
+
 Create a table to store failed compensations:
 
 ```sql
@@ -250,20 +257,20 @@ CREATE INDEX idx_dlq_timestamp ON dead_letter_queue(timestamp);
 ```typescript
 @Injectable()
 export class DeadLetterQueueRepository {
-  async save(event: CompensationFailedEvent): Promise<void> {
-    await this.prisma.deadLetterQueue.create({
-      data: {
-        bookingId: event.bookingId,
-        compensationType: event.compensationType,
-        reservationId: event.reservationId,
-        errorMessage: event.errorMessage,
-        errorStack: event.errorStack,
-        timestamp: event.timestamp,
-        retryCount: event.retryCount,
-        status: 'pending',
-      },
-    });
-  }
+    async save(event: CompensationFailedEvent): Promise<void> {
+        await this.prisma.deadLetterQueue.create({
+            data: {
+                bookingId: event.bookingId,
+                compensationType: event.compensationType,
+                reservationId: event.reservationId,
+                errorMessage: event.errorMessage,
+                errorStack: event.errorStack,
+                timestamp: event.timestamp,
+                retryCount: event.retryCount,
+                status: 'pending',
+            },
+        });
+    }
 }
 ```
 
@@ -271,16 +278,16 @@ export class DeadLetterQueueRepository {
 
 ```typescript
 await this.alertService.sendAlert({
-  channel: 'ops-critical',
-  severity: 'high',
-  title: 'Saga Compensation Failed',
-  message: `Failed to cancel ${event.compensationType} reservation`,
-  fields: {
-    'Booking ID': event.bookingId,
-    'Reservation ID': event.reservationId,
-    'Error': event.errorMessage,
-    'Retry Count': event.retryCount,
-  },
+    channel: 'ops-critical',
+    severity: 'high',
+    title: 'Saga Compensation Failed',
+    message: `Failed to cancel ${event.compensationType} reservation`,
+    fields: {
+        'Booking ID': event.bookingId,
+        'Reservation ID': event.reservationId,
+        Error: event.errorMessage,
+        'Retry Count': event.retryCount,
+    },
 });
 ```
 
@@ -289,22 +296,22 @@ await this.alertService.sendAlert({
 ```typescript
 @Injectable()
 export class CompensationRetryScheduler {
-  async scheduleRetry(event: CompensationFailedEvent, newRetryCount: number): Promise<void> {
-    const delayMinutes = Math.pow(2, newRetryCount) * 5; // Exponential backoff
-    
-    await this.queueService.schedule(
-      'retry-compensation',
-      {
-        bookingId: event.bookingId,
-        compensationType: event.compensationType,
-        reservationId: event.reservationId,
-        retryCount: newRetryCount,
-      },
-      {
-        delay: delayMinutes * 60 * 1000,
-      },
-    );
-  }
+    async scheduleRetry(event: CompensationFailedEvent, newRetryCount: number): Promise<void> {
+        const delayMinutes = Math.pow(2, newRetryCount) * 5; // Exponential backoff
+
+        await this.queueService.schedule(
+            'retry-compensation',
+            {
+                bookingId: event.bookingId,
+                compensationType: event.compensationType,
+                reservationId: event.reservationId,
+                retryCount: newRetryCount,
+            },
+            {
+                delay: delayMinutes * 60 * 1000,
+            },
+        );
+    }
 }
 ```
 
@@ -312,30 +319,32 @@ export class CompensationRetryScheduler {
 
 Create a dashboard to view and manage failed compensations:
 
-- **Pending**: Compensations waiting for retry
-- **Retrying**: Currently being retried
-- **Failed**: Exceeded max retries
-- **Resolved**: Manually or automatically resolved
+-   **Pending**: Compensations waiting for retry
+-   **Retrying**: Currently being retried
+-   **Failed**: Exceeded max retries
+-   **Resolved**: Manually or automatically resolved
 
 Actions:
-- View details
-- Retry now
-- Mark as resolved
-- View error logs
+
+-   View details
+-   Retry now
+-   Mark as resolved
+-   View error logs
 
 ### 6. Metrics & Alerts
 
 Track the following metrics:
 
-- `compensation_failures_total` - Counter
-- `compensation_retry_attempts_total` - Counter
-- `compensation_resolution_time_seconds` - Histogram
-- `pending_compensations_count` - Gauge
+-   `compensation_failures_total` - Counter
+-   `compensation_retry_attempts_total` - Counter
+-   `compensation_resolution_time_seconds` - Histogram
+-   `pending_compensations_count` - Gauge
 
 Alert on:
-- Compensation failure rate > 5%
-- Pending compensations > 10
-- Compensation age > 24 hours
+
+-   Compensation failure rate > 5%
+-   Pending compensations > 10
+-   Compensation age > 24 hours
 
 ## Best Practices
 
@@ -353,42 +362,47 @@ Alert on:
 When a compensation cannot be automatically resolved:
 
 1. **Identify the Issue**
-   - Check error message and stack trace
-   - Verify external service status
-   - Review reservation details
+
+    - Check error message and stack trace
+    - Verify external service status
+    - Review reservation details
 
 2. **Attempt Manual Cancellation**
-   - Use external service's admin panel
-   - Contact service provider if necessary
-   - Document the cancellation reference
+
+    - Use external service's admin panel
+    - Contact service provider if necessary
+    - Document the cancellation reference
 
 3. **Update Records**
-   - Mark DLQ entry as resolved
-   - Record resolution method
-   - Update saga state if applicable
+
+    - Mark DLQ entry as resolved
+    - Record resolution method
+    - Update saga state if applicable
 
 4. **Issue Refund (if applicable)**
-   - If cancellation succeeded, no refund needed
-   - If stuck, issue manual refund to customer
-   - Document transaction details
+
+    - If cancellation succeeded, no refund needed
+    - If stuck, issue manual refund to customer
+    - Document transaction details
 
 5. **Post-Mortem**
-   - Document root cause
-   - Implement preventive measures
-   - Update monitoring if needed
+    - Document root cause
+    - Implement preventive measures
+    - Update monitoring if needed
 
 ## Related Documentation
 
-- [SAGA_PATTERN.md](SAGA_PATTERN.md) - Overall saga implementation
-- [SAGA_QUICKSTART.md](../SAGA_QUICKSTART.md) - Quick start guide
-- [SAGA_EXAMPLES.http](SAGA_EXAMPLES.http) - Example requests
+-   [SAGA_PATTERN.md](SAGA_PATTERN.md) - Overall saga implementation
+-   [SAGA_QUICKSTART.md](../SAGA_QUICKSTART.md) - Quick start guide
+-   [SAGA_EXAMPLES.http](SAGA_EXAMPLES.http) - Example requests
 
 ## Summary
 
 The Dead Letter Queue implementation ensures that:
-- ✅ No compensation failures are silently ignored
-- ✅ Operations team is alerted to issues requiring intervention
-- ✅ Failed compensations can be retried automatically
-- ✅ Full audit trail exists for all compensation attempts
-- ✅ System remains resilient even when external services fail
-- ✅ Customer data integrity is maintained
+
+-   ✅ No compensation failures are silently ignored
+-   ✅ Operations team is alerted to issues requiring intervention
+-   ✅ Failed compensations can be retried automatically
+-   ✅ Full audit trail exists for all compensation attempts
+-   ✅ System remains resilient even when external services fail
+-   ✅ Customer data integrity is maintained

@@ -163,7 +163,7 @@ export class TravelBookingSaga {
     /**
      * Compensate - Execute compensating transactions in reverse order
      * This is the heart of the Saga pattern
-     * 
+     *
      * If any compensation fails, publishes CompensationFailedEvent to Dead Letter Queue
      */
     private async compensate(
@@ -184,7 +184,7 @@ export class TravelBookingSaga {
                     const errorMessage = error instanceof Error ? error.message : String(error);
                     const errorStack = error instanceof Error ? error.stack : undefined;
                     this.logger.error(`Failed to cancel car rental: ${errorMessage}`);
-                    
+
                     // Publish to Dead Letter Queue
                     const deadLetterEvent = new CompensationFailedEvent(
                         bookingId,
@@ -194,7 +194,9 @@ export class TravelBookingSaga {
                         errorStack,
                     );
                     this.eventBus.publish(deadLetterEvent);
-                    this.logger.warn(`📮 Published CompensationFailedEvent to Dead Letter Queue for car rental ${carRentalReservation.reservationId}`);
+                    this.logger.warn(
+                        `📮 Published CompensationFailedEvent to Dead Letter Queue for car rental ${carRentalReservation.reservationId}`,
+                    );
                 }
             });
         }
@@ -208,7 +210,7 @@ export class TravelBookingSaga {
                     const errorMessage = error instanceof Error ? error.message : String(error);
                     const errorStack = error instanceof Error ? error.stack : undefined;
                     this.logger.error(`Failed to cancel hotel: ${errorMessage}`);
-                    
+
                     // Publish to Dead Letter Queue
                     const deadLetterEvent = new CompensationFailedEvent(
                         bookingId,
@@ -218,7 +220,9 @@ export class TravelBookingSaga {
                         errorStack,
                     );
                     this.eventBus.publish(deadLetterEvent);
-                    this.logger.warn(`📮 Published CompensationFailedEvent to Dead Letter Queue for hotel ${hotelReservation.reservationId}`);
+                    this.logger.warn(
+                        `📮 Published CompensationFailedEvent to Dead Letter Queue for hotel ${hotelReservation.reservationId}`,
+                    );
                 }
             });
         }
@@ -232,7 +236,7 @@ export class TravelBookingSaga {
                     const errorMessage = error instanceof Error ? error.message : String(error);
                     const errorStack = error instanceof Error ? error.stack : undefined;
                     this.logger.error(`Failed to cancel flight: ${errorMessage}`);
-                    
+
                     // Publish to Dead Letter Queue
                     const deadLetterEvent = new CompensationFailedEvent(
                         bookingId,
@@ -242,7 +246,9 @@ export class TravelBookingSaga {
                         errorStack,
                     );
                     this.eventBus.publish(deadLetterEvent);
-                    this.logger.warn(`📮 Published CompensationFailedEvent to Dead Letter Queue for flight ${flightReservation.reservationId}`);
+                    this.logger.warn(
+                        `📮 Published CompensationFailedEvent to Dead Letter Queue for flight ${flightReservation.reservationId}`,
+                    );
                 }
             });
         }
