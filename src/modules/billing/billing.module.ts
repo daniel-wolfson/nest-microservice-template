@@ -14,6 +14,11 @@ import { QueryHandlers } from './queries/handlers';
 import { EventHandlers } from './events/handlers';
 import { WebhookController } from './webhook.controller';
 import { BillingMessageController } from './billing-message.controller';
+import { TravelBookingController } from './travel-booking.controller';
+import { FlightService } from './services/flight.service';
+import { HotelService } from './services/hotel.service';
+import { CarRentalService } from './services/car-rental.service';
+import { TravelBookingSaga } from './sagas/travel-booking.saga';
 
 @Module({
     imports: [
@@ -49,13 +54,17 @@ import { BillingMessageController } from './billing-message.controller';
             },
         ]),
     ],
-    controllers: [BillingController, WebhookController, BillingMessageController],
+    controllers: [BillingController, WebhookController, BillingMessageController, TravelBookingController],
     providers: [
         BillingService,
         StripeService,
         VirtualAccountService,
         InvoiceService,
         TransactionStateMachine,
+        FlightService,
+        HotelService,
+        CarRentalService,
+        TravelBookingSaga,
         ...CommandHandlers,
         ...QueryHandlers,
         ...EventHandlers,

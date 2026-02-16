@@ -3,6 +3,7 @@ import { SubscriptionCanceledHandler } from './subscription-canceled.handler';
 import { PaymentSuccessHandler } from './payment-success.handler';
 import { UserBalanceLowHandler } from './user-balance-low.handler';
 import { OrderCreatedHandler } from './order-created.handler';
+import { CompensationFailedHandler } from './compensation-failed.handler';
 
 export const EventHandlers = [
     SubscriptionCreatedHandler,
@@ -10,4 +11,5 @@ export const EventHandlers = [
     PaymentSuccessHandler,
     UserBalanceLowHandler,
     OrderCreatedHandler,
+    CompensationFailedHandler,
 ];

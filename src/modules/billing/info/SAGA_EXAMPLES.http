@@ -1,0 +1,289 @@
+# Travel Booking Saga - Example Requests
+
+## Success Scenario - Complete Travel Booking
+
+### Request
+POST http://localhost:3000/travel-booking
+Content-Type: application/json
+
+{
+  "userId": "user-001",
+  "flightOrigin": "JFK",
+  "flightDestination": "LAX",
+  "departureDate": "2026-03-15",
+  "returnDate": "2026-03-22",
+  "hotelId": "hilton-downtown-la",
+  "checkInDate": "2026-03-15",
+  "checkOutDate": "2026-03-22",
+  "carPickupLocation": "LAX Airport",
+  "carDropoffLocation": "LAX Airport",
+  "carPickupDate": "2026-03-15",
+  "carDropoffDate": "2026-03-22",
+  "totalAmount": 2500.00
+}
+
+### Expected Response (Success)
+```json
+{
+  "bookingId": "TRV-1708099200000-ABC123XYZ",
+  "flightReservationId": "FLT-1708099201000-def456uvw",
+  "hotelReservationId": "HTL-1708099202200-ghi789rst",
+  "carRentalReservationId": "CAR-1708099203700-jkl012mno",
+  "status": "confirmed",
+  "timestamp": "2026-02-16T12:00:00.000Z"
+}
+```
+
+---
+
+## Testing Compensation Scenario
+
+Since the CarRentalService has a 30% failure rate, you can trigger compensation by making multiple requests. Approximately 3 out of 10 requests will fail at the car rental step.
+
+### Request (Same as above - run multiple times)
+POST http://localhost:3000/travel-booking
+Content-Type: application/json
+
+{
+  "userId": "user-002",
+  "flightOrigin": "SFO",
+  "flightDestination": "MIA",
+  "departureDate": "2026-04-10",
+  "returnDate": "2026-04-17",
+  "hotelId": "marriott-miami-beach",
+  "checkInDate": "2026-04-10",
+  "checkOutDate": "2026-04-17",
+  "carPickupLocation": "Miami Airport",
+  "carDropoffLocation": "Miami Airport",
+  "carPickupDate": "2026-04-10",
+  "carDropoffDate": "2026-04-17",
+  "totalAmount": 3200.00
+}
+
+### Expected Response (Compensation)
+```json
+{
+  "bookingId": "TRV-1708099200000-XYZ789ABC",
+  "flightReservationId": "FLT-1708099201000-abc123def",
+  "hotelReservationId": "HTL-1708099202200-ghi456jkl",
+  "carRentalReservationId": null,
+  "status": "compensated",
+  "errorMessage": "No available cars for the selected location and dates",
+  "timestamp": "2026-02-16T12:00:05.000Z"
+}
+```
+
+---
+
+## Additional Test Scenarios
+
+### Scenario 1: Business Travel
+POST http://localhost:3000/travel-booking
+Content-Type: application/json
+
+{
+  "userId": "user-003",
+  "flightOrigin": "ORD",
+  "flightDestination": "SEA",
+  "departureDate": "2026-05-01",
+  "returnDate": "2026-05-05",
+  "hotelId": "hyatt-downtown-seattle",
+  "checkInDate": "2026-05-01",
+  "checkOutDate": "2026-05-05",
+  "carPickupLocation": "Seattle Airport",
+  "carDropoffLocation": "Seattle Downtown",
+  "carPickupDate": "2026-05-01",
+  "carDropoffDate": "2026-05-05",
+  "totalAmount": 1800.00
+}
+
+### Scenario 2: Family Vacation
+POST http://localhost:3000/travel-booking
+Content-Type: application/json
+
+{
+  "userId": "user-004",
+  "flightOrigin": "BOS",
+  "flightDestination": "MCO",
+  "departureDate": "2026-06-20",
+  "returnDate": "2026-06-27",
+  "hotelId": "disney-resort-orlando",
+  "checkInDate": "2026-06-20",
+  "checkOutDate": "2026-06-27",
+  "carPickupLocation": "Orlando Airport",
+  "carDropoffLocation": "Orlando Airport",
+  "carPickupDate": "2026-06-20",
+  "carDropoffDate": "2026-06-27",
+  "totalAmount": 4500.00
+}
+
+### Scenario 3: Weekend Getaway
+POST http://localhost:3000/travel-booking
+Content-Type: application/json
+
+{
+  "userId": "user-005",
+  "flightOrigin": "DEN",
+  "flightDestination": "LAS",
+  "departureDate": "2026-07-12",
+  "returnDate": "2026-07-14",
+  "hotelId": "bellagio-las-vegas",
+  "checkInDate": "2026-07-12",
+  "checkOutDate": "2026-07-14",
+  "carPickupLocation": "Las Vegas Airport",
+  "carDropoffLocation": "Las Vegas Strip",
+  "carPickupDate": "2026-07-12",
+  "carDropoffDate": "2026-07-14",
+  "totalAmount": 1200.00
+}
+
+---
+
+## Using cURL
+
+### Success Scenario
+```bash
+curl -X POST http://localhost:3000/travel-booking \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "user-001",
+    "flightOrigin": "JFK",
+    "flightDestination": "LAX",
+    "departureDate": "2026-03-15",
+    "returnDate": "2026-03-22",
+    "hotelId": "hilton-downtown-la",
+    "checkInDate": "2026-03-15",
+    "checkOutDate": "2026-03-22",
+    "carPickupLocation": "LAX Airport",
+    "carDropoffLocation": "LAX Airport",
+    "carPickupDate": "2026-03-15",
+    "carDropoffDate": "2026-03-22",
+    "totalAmount": 2500.00
+  }'
+```
+
+### Testing Multiple Requests (to trigger compensation)
+```bash
+# Run this 10 times - approximately 3 will fail and compensate
+for i in {1..10}; do
+  echo "Request $i:"
+  curl -X POST http://localhost:3000/travel-booking \
+    -H "Content-Type: application/json" \
+    -d "{
+      \"userId\": \"user-$i\",
+      \"flightOrigin\": \"JFK\",
+      \"flightDestination\": \"LAX\",
+      \"departureDate\": \"2026-03-15\",
+      \"returnDate\": \"2026-03-22\",
+      \"hotelId\": \"hilton-downtown-la\",
+      \"checkInDate\": \"2026-03-15\",
+      \"checkOutDate\": \"2026-03-22\",
+      \"carPickupLocation\": \"LAX Airport\",
+      \"carDropoffLocation\": \"LAX Airport\",
+      \"carPickupDate\": \"2026-03-15\",
+      \"carDropoffDate\": \"2026-03-22\",
+      \"totalAmount\": 2500.00
+    }" | jq '.status'
+  echo ""
+done
+```
+
+---
+
+## PowerShell Testing
+
+```powershell
+# Single request
+$body = @{
+    userId = "user-001"
+    flightOrigin = "JFK"
+    flightDestination = "LAX"
+    departureDate = "2026-03-15"
+    returnDate = "2026-03-22"
+    hotelId = "hilton-downtown-la"
+    checkInDate = "2026-03-15"
+    checkOutDate = "2026-03-22"
+    carPickupLocation = "LAX Airport"
+    carDropoffLocation = "LAX Airport"
+    carPickupDate = "2026-03-15"
+    carDropoffDate = "2026-03-22"
+    totalAmount = 2500.00
+} | ConvertTo-Json
+
+Invoke-RestMethod -Method Post -Uri "http://localhost:3000/travel-booking" -Body $body -ContentType "application/json"
+
+# Multiple requests to test compensation
+1..10 | ForEach-Object {
+    Write-Host "Request $_" -ForegroundColor Cyan
+    $body = @{
+        userId = "user-$_"
+        flightOrigin = "JFK"
+        flightDestination = "LAX"
+        departureDate = "2026-03-15"
+        returnDate = "2026-03-22"
+        hotelId = "hilton-downtown-la"
+        checkInDate = "2026-03-15"
+        checkOutDate = "2026-03-22"
+        carPickupLocation = "LAX Airport"
+        carDropoffLocation = "LAX Airport"
+        carPickupDate = "2026-03-15"
+        carDropoffDate = "2026-03-22"
+        totalAmount = 2500.00
+    } | ConvertTo-Json
+    
+    $response = Invoke-RestMethod -Method Post -Uri "http://localhost:3000/travel-booking" -Body $body -ContentType "application/json"
+    
+    if ($response.status -eq "confirmed") {
+        Write-Host "✓ Confirmed: $($response.bookingId)" -ForegroundColor Green
+    } else {
+        Write-Host "✗ Compensated: $($response.bookingId) - $($response.errorMessage)" -ForegroundColor Yellow
+    }
+}
+```
+
+---
+
+## Expected Log Output
+
+### Successful Booking
+```
+[TravelBookingSaga] Starting Travel Booking Saga: TRV-1708099200000-ABC123XYZ
+[TravelBookingSaga] User: user-001, Total Amount: $2500
+[TravelBookingSaga] Step 1: Reserving Flight...
+[FlightService] Reserving flight from JFK to LAX for user user-001
+[FlightService] Flight reserved successfully: FLT-1708099201000-def456uvw (ABC123)
+[TravelBookingSaga] ✓ Step 1 Complete: Flight Reserved (FLT-1708099201000-def456uvw)
+[TravelBookingSaga] Step 2: Reserving Hotel...
+[HotelService] Reserving hotel hilton-downtown-la for user user-001 from 2026-03-15 to 2026-03-22
+[HotelService] Hotel reserved successfully: HTL-1708099202200-ghi789rst (DEF456)
+[TravelBookingSaga] ✓ Step 2 Complete: Hotel Reserved (HTL-1708099202200-ghi789rst)
+[TravelBookingSaga] Step 3: Reserving Car...
+[CarRentalService] Reserving car at LAX Airport for user user-001
+[CarRentalService] Car reserved successfully: CAR-1708099203700-jkl012mno (GHI789)
+[TravelBookingSaga] ✓ Step 3 Complete: Car Reserved (CAR-1708099203700-jkl012mno)
+[TravelBookingSaga] Step 4: Processing Payment of $2500...
+[TravelBookingSaga] ✓ Step 4 Complete: Payment Processed
+[TravelBookingSaga] ✅ Travel Booking Saga Completed Successfully: TRV-1708099200000-ABC123XYZ
+```
+
+### Compensated Booking
+```
+[TravelBookingSaga] Starting Travel Booking Saga: TRV-1708099200000-XYZ789ABC
+[TravelBookingSaga] Step 1: Reserving Flight...
+[FlightService] Flight reserved successfully: FLT-1708099201000-abc123def
+[TravelBookingSaga] ✓ Step 1 Complete: Flight Reserved
+[TravelBookingSaga] Step 2: Reserving Hotel...
+[HotelService] Hotel reserved successfully: HTL-1708099202200-ghi456jkl
+[TravelBookingSaga] ✓ Step 2 Complete: Hotel Reserved
+[TravelBookingSaga] Step 3: Reserving Car...
+[CarRentalService] Car rental reservation failed - no available cars
+[TravelBookingSaga] ❌ Travel Booking Saga Failed: No available cars for the selected location and dates
+[TravelBookingSaga] 🔄 Starting Compensation Process...
+[HotelService] Compensating: Canceling hotel reservation HTL-1708099202200-ghi456jkl
+[HotelService] Hotel reservation HTL-1708099202200-ghi456jkl cancelled successfully
+[TravelBookingSaga] ✓ Compensated: Hotel booking cancelled
+[FlightService] Compensating: Canceling flight reservation FLT-1708099201000-abc123def
+[FlightService] Flight reservation FLT-1708099201000-abc123def cancelled successfully
+[TravelBookingSaga] ✓ Compensated: Flight booking cancelled
+[TravelBookingSaga] ✅ Compensation Process Completed
+```
