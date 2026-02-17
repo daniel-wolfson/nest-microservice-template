@@ -1,8 +1,8 @@
 import { Controller, Logger } from '@nestjs/common';
 import { EventPattern, Payload, Ctx, RmqContext } from '@nestjs/microservices';
 import { CommandBus, EventBus } from '@nestjs/cqrs';
-import { OrderCreatedEvent } from './events/impl/order-created.event';
-import { CreateInvoiceCommand } from './commands/impl/create-invoice.command';
+import { OrderCreatedEvent } from '../events/impl/order-created.event';
+import { CreateInvoiceCommand } from '../commands/impl/create-invoice.command';
 
 @Controller()
 export class BillingMessageController {

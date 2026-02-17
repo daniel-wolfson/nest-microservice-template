@@ -16,6 +16,15 @@ export default () => ({
         vhost: process.env.RABBITMQ_VHOST || '/',
     },
 
+    kafka: {
+        url: process.env.KAFKA_BROKERS,
+        user: process.env.KAFKA_CLIENT_ID,
+        host: process.env.KAFKA_BROKERS,
+        password: process.env.KAFKA_SASL_PASSWORD,
+        port: parseInt(process.env.KAFKA_PORT, 10) || 15672,
+        vhost: process.env.KAFKA_VHOST || '/',
+    },
+
     jwt: {
         secret: process.env.JWT_SECRET,
         accessExpiration: parseInt(process.env.JWT_ACCESS_EXPIRATION, 10) || 900,

@@ -1,8 +1,8 @@
 // Billing Module Main Exports
 export { BillingModule } from './billing.module';
-export { BillingController } from './billing.controller';
+export { BillingController } from './controllers/billing.controller';
 export { WebhookController } from './webhook.controller';
-export { BillingMessageController } from './billing-message.controller';
+export { BillingMessageController } from './controllers/billing-message.controller';
 
 // Services
 export { BillingService } from './services/billing.service';
@@ -17,10 +17,10 @@ export { DepositDto } from './dto/deposit.dto';
 export { WithdrawDto } from './dto/withdraw.dto';
 export { CreateInvoiceDto } from './dto/create-invoice.dto';
 export {
-  CreateTransactionDto,
-  TransactionType,
-  TransactionStatus,
-  TransactionState,
+    CreateTransactionDto,
+    TransactionType,
+    TransactionStatus,
+    TransactionState,
 } from './dto/create-transaction.dto';
 
 // Commands
@@ -49,7 +49,10 @@ export { InvoiceCreatedEvent } from './events/impl/invoice-created.event';
 export { OrderCreatedEvent } from './events/impl/order-created.event';
 
 // State Machine
-export { TransactionStateMachine, TransactionState as FSMTransactionState } from './state-machines/transaction.state-machine';
+export {
+    TransactionStateMachine,
+    TransactionState as FSMTransactionState,
+} from './state-machines/transaction.state-machine';
 
 // Config
 export { default as billingConfig } from './config/billing.config';

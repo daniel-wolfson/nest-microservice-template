@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { BillingController } from './billing.controller';
+import { BillingController } from './controllers/billing.controller';
 import { BillingService } from './services/billing.service';
 import { StripeService } from './services/stripe.service';
 import { VirtualAccountService } from './services/virtual-account.service';
@@ -13,8 +13,8 @@ import { CommandHandlers } from './commands/handlers';
 import { QueryHandlers } from './queries/handlers';
 import { EventHandlers } from './events/handlers';
 import { WebhookController } from './webhook.controller';
-import { BillingMessageController } from './billing-message.controller';
-import { TravelBookingController } from './travel-booking.controller';
+import { BillingMessageController } from './controllers/billing-message.controller';
+import { TravelBookingController } from './controllers/travel-booking.controller';
 import { FlightService } from './services/flight.service';
 import { HotelService } from './services/hotel.service';
 import { CarRentalService } from './services/car-rental.service';
@@ -38,7 +38,8 @@ import { TravelBookingSaga } from './sagas/travel-booking.saga';
                             `amqp://${configService.get('RABBITMQ_DEFAULT_USER', 'admin')}:${configService.get(
                                 'RABBITMQ_DEFAULT_PASS',
                                 '123456',
-                            )}@${configService.get('RABBITMQ_HOST', 'localhost')}:${configService.get(
+                            )}
+                            @${configService.get('RABBITMQ_HOST', 'localhost')}:${configService.get(
                                 'RABBITMQ_PORT',
                                 '5672',
                             )}`,

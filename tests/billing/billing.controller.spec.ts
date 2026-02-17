@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import { BillingController } from '@/modules/billing/billing.controller';
+import { BillingController } from '@/modules/billing/controllers/billing.controller';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { CreateSubscriptionDto } from '@/modules/billing/dto/create-subscription.dto';
 import { DepositDto } from '@/modules/billing/dto/deposit.dto';

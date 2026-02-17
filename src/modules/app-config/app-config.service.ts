@@ -29,16 +29,16 @@ export class AppConfigService {
         return this.configService.get<string>('jwt.accessSecret')!;
     }
 
-    get jwtAccessExpiresIn(): string {
-        return this.configService.get<string>('jwt.accessExpiresIn')!;
+    get jwtAccessExpiresIn(): number {
+        return this.configService.get<number>('jwt.accessExpiresIn')!;
     }
 
     get jwtRefreshSecret(): string {
         return this.configService.get<string>('jwt.refreshSecret')!;
     }
 
-    get jwtRefreshExpiresIn(): string {
-        return this.configService.get<string>('jwt.refreshExpiresIn')!;
+    get jwtRefreshExpiresIn(): number {
+        return this.configService.get<number>('jwt.refreshExpiresIn')!;
     }
 
     get jwtIssuer(): string {

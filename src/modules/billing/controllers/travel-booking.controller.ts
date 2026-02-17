@@ -1,8 +1,8 @@
 import { Controller, Post, Body, HttpCode, HttpStatus, Logger } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { TravelBookingDto, TravelBookingResponseDto } from './dto/travel-booking.dto';
-import { BookTravelCommand } from './commands/impl/book-travel.command';
+import { TravelBookingDto, TravelBookingResponseDto } from '../dto/travel-booking.dto';
+import { BookTravelCommand } from '../commands/impl/book-travel.command';
 
 @ApiTags('Travel Booking Saga')
 @Controller('travel-booking')

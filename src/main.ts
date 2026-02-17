@@ -1,4 +1,4 @@
-import { BadRequestException, ValidationPipe } from '@nestjs/common';
+import { BadRequestException, INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 // GraphQL-step 13 - Configure Application Bootstrap
 // Set up main.ts with NestFactory.create() and configure the application to listen on port 3000
@@ -10,6 +10,7 @@ import { EnvironmentConfigFactory } from './config/environment.config';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { ValidationExceptionFilter } from './common/filters/validation-exception.filter';
 import { LoggerFactory } from './modules/logging';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 
 async function bootstrap() {
     // Create initial logger for bootstrap process
@@ -30,6 +31,18 @@ async function bootstrap() {
 
         // Configure global middleware and filters
         configureGlobalMiddleware(app, environmentConfig);
+
+        // Configure message broker based on environment variable
+        const messageBroker = configService.get<string>('MESSAGE_BROKER', 'rabbitmq');
+        if (messageBroker === 'rabbitmq') {
+            configureRabbitMessageQueues(app, configService);
+            appLogger.log('Using RabbitMQ as message broker');
+        } else if (messageBroker === 'kafka') {
+            configureKafkaMessageQueues(app, configService);
+            appLogger.log('Using Kafka as message broker');
+        }
+
+        await app.startAllMicroservices();
 
         // Setup Swagger documentation (non-production only)
         if (!environmentConfig.isProduction) {
@@ -54,8 +67,127 @@ async function bootstrap() {
     }
 }
 
+// Configure RabbitMQ microservice options (if needed, can be moved to a separate file)
+function configureRabbitMessageQueues(app: any, configService: ConfigService) {
+    const rabbitmq_url =
+        configService.get<string>('RABBITMQ_URL') ||
+        (() => {
+            throw new Error('RABBITMQ_URL is not defined');
+        })();
+
+    const username = configService.get<string>('RABBITMQ_DEFAULT_USER', 'guest');
+    const password = configService.get<string>('RABBITMQ_DEFAULT_PASS', 'guest');
+
+    // Define message queues based on hospitality industry domains
+    const hospitalityQueues = [
+        {
+            // For handling new bookings, cancellations, and modifications.
+            // High durability is critical to prevent losing booking information.
+            name: 'booking_queue',
+            options: { durable: true },
+        },
+        {
+            // For processing payments, refunds, and charges.
+            // This requires high durability and reliability.
+            name: 'payment_queue',
+            options: { durable: true },
+        },
+        {
+            // For sending notifications like booking confirmations, reminders, and marketing messages.
+            name: 'notification_queue',
+            options: { durable: true },
+        },
+        {
+            // For managing housekeeping tasks, room status updates, and maintenance requests.
+            name: 'housekeeping_queue',
+            options: { durable: true },
+        },
+        {
+            // For logging user activities and system events for analytics and business intelligence.
+            // Durability can be slightly relaxed for higher throughput if some data loss is acceptable.
+            name: 'analytics_queue',
+            options: { durable: false },
+        },
+    ];
+
+    hospitalityQueues.forEach(queueConfig => {
+        app.connectMicroservice({
+            transport: Transport.RMQ,
+            options: {
+                urls: [rabbitmq_url],
+                username: username,
+                password: password,
+                queue: queueConfig.name,
+                queueOptions: queueConfig.options,
+                prefetchCount: 1, // Process one message at a time to ensure order and reliability
+                noAck: false, // Manual acknowledgment is crucial for ensuring messages are processed
+            },
+        });
+    });
+}
+
+function configureKafkaMessageQueues(app: INestApplication<any>, configService: ConfigService) {
+    const kafka_brokers = (configService.get<string>('KAFKA_BROKERS') || 'localhost:9092').split(',');
+
+    // Define Kafka topics based on hospitality industry domains
+    // Hospitality-related topics would be consumed by controllers using @MessagePattern decorator.
+    // e.g. @MessagePattern('booking_topic')
+    const hospitalityTopics = [
+        {
+            // For handling new bookings, cancellations, and modifications.
+            clientId: 'hotel-booking-consumer',
+            groupId: 'hotel-booking-group',
+            topics: ['booking_topic'],
+        },
+        {
+            // For processing payments, refunds, and charges.
+            clientId: 'hotel-payment-consumer',
+            groupId: 'hotel-payment-group',
+            topics: ['payment_topic'],
+        },
+        {
+            // For sending notifications like booking confirmations, reminders, and marketing messages.
+            clientId: 'hotel-notification-consumer',
+            groupId: 'hotel-notification-group',
+            topics: ['notification_topic'],
+        },
+        {
+            // For managing housekeeping tasks, room status updates, and maintenance requests.
+            clientId: 'hotel-housekeeping-consumer',
+            groupId: 'hotel-housekeeping-group',
+            topics: ['housekeeping_topic'],
+        },
+        {
+            // For logging user activities and system events for analytics and business intelligence.
+            clientId: 'hotel-analytics-consumer',
+            groupId: 'hotel-analytics-group',
+            topics: ['analytics_topic'],
+        },
+    ];
+
+    hospitalityTopics.forEach(topicConfig => {
+        app.connectMicroservice<MicroserviceOptions>({
+            transport: Transport.KAFKA,
+            options: {
+                client: {
+                    clientId: topicConfig.clientId,
+                    brokers: kafka_brokers,
+                },
+                consumer: {
+                    groupId: topicConfig.groupId,
+                    allowAutoTopicCreation: true,
+                },
+                subscribe: {
+                    fromBeginning: false,
+                    topics: topicConfig.topics,
+                },
+            },
+        });
+    });
+}
+
 // Extract global middleware configuration
-function configureGlobalMiddleware(app: any, environmentConfig: any) {
+function configureGlobalMiddleware(app: INestApplication, environmentConfig: any) {
     // Global Exception Filters (order matters - most specific first)
     app.useGlobalFilters(new ValidationExceptionFilter(), new GlobalExceptionFilter(app.get(ConfigService)));
 

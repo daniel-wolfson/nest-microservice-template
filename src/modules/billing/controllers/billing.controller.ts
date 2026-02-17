@@ -1,16 +1,16 @@
 import { Controller, Post, Get, Body, Param, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { CreateSubscriptionCommand } from './commands/impl/create-subscription.command';
-import { CancelSubscriptionCommand } from './commands/impl/cancel-subscription.command';
-import { DepositCommand } from './commands/impl/deposit.command';
-import { WithdrawCommand } from './commands/impl/withdraw.command';
-import { GetBalanceQuery } from './queries/impl/get-balance.query';
-import { GetInvoicesQuery } from './queries/impl/get-invoices.query';
-import { GetSubscriptionQuery } from './queries/impl/get-subscription.query';
-import { CreateSubscriptionDto } from './dto/create-subscription.dto';
-import { DepositDto } from './dto/deposit.dto';
-import { WithdrawDto } from './dto/withdraw.dto';
+import { CreateSubscriptionCommand } from '../commands/impl/create-subscription.command';
+import { CancelSubscriptionCommand } from '../commands/impl/cancel-subscription.command';
+import { DepositCommand } from '../commands/impl/deposit.command';
+import { WithdrawCommand } from '../commands/impl/withdraw.command';
+import { GetBalanceQuery } from '../queries/impl/get-balance.query';
+import { GetInvoicesQuery } from '../queries/impl/get-invoices.query';
+import { GetSubscriptionQuery } from '../queries/impl/get-subscription.query';
+import { CreateSubscriptionDto } from '../dto/create-subscription.dto';
+import { DepositDto } from '../dto/deposit.dto';
+import { WithdrawDto } from '../dto/withdraw.dto';
 
 @ApiTags('billing')
 @Controller('billing')
