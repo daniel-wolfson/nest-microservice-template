@@ -5,19 +5,19 @@ import Redis from 'ioredis';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { getModelToken } from '@nestjs/mongoose';
-import { TravelBookingSaga } from '../../src/modules/billing/sagas/travel-booking.saga';
-import { TravelBookingSagaStateRepository } from '../../src/modules/billing/sagas/repositories/travel-booking-saga-state.repository';
-import { SagaCoordinator } from '../../src/modules/billing/sagas/services/saga-coordinator.service';
+import { TravelBookingSaga } from '@/modules/billing/sagas/travel-booking.saga';
+import { TravelBookingSagaStateRepository } from '@/modules/billing/sagas/repositories/travel-booking-saga-state.repository';
+import { SagaCoordinator } from '@/modules/billing/sagas/services/saga-coordinator.service';
 import {
     TravelBookingSagaState,
     TravelBookingSagaStateSchema,
     SagaStatus,
-} from '../../src/modules/billing/sagas/schemas/travel-booking-saga-state.schema';
-import { TravelBookingRequestDto } from '../../src/modules/billing/dto/travel-booking.dto';
-import { FlightService } from '../../src/modules/billing/services/flight.service';
-import { HotelService } from '../../src/modules/billing/services/hotel.service';
-import { CarRentalService } from '../../src/modules/billing/services/car-rental.service';
-import { BILLING_BROKER_CLIENT } from '../../src/modules/billing/brokers/billing-broker.constants';
+} from '@/modules/billing/sagas/schemas/travel-booking-saga-state.schema';
+import { TravelBookingRequestDto } from '@/modules/billing/dto/travel-booking.dto';
+import { FlightService } from '@/modules/billing/services/flight.service';
+import { HotelService } from '@/modules/billing/services/hotel.service';
+import { CarRentalService } from '@/modules/billing/services/car-rental.service';
+import { BILLING_BROKER_CLIENT } from '@/modules/billing/brokers/billing-broker.constants';
 import { randomUUID } from 'crypto';
 import { exec } from 'child_process';
 import { promisify } from 'util';
