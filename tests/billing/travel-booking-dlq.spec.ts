@@ -4,7 +4,7 @@ import { TravelBookingSaga } from '../../src/modules/billing/sagas/travel-bookin
 import { FlightService } from '../../src/modules/billing/services/flight.service';
 import { HotelService } from '../../src/modules/billing/services/hotel.service';
 import { CarRentalService } from '../../src/modules/billing/services/car-rental.service';
-import { TravelBookingDto } from '../../src/modules/billing/dto/travel-booking.dto';
+import { TravelBookingRequestDto } from '../../src/modules/billing/dto/travel-booking.dto';
 import { CompensationFailedEvent } from '../../src/modules/billing/events/impl/compensation-failed.event';
 
 describe('TravelBookingSaga - Dead Letter Queue', () => {
@@ -43,7 +43,7 @@ describe('TravelBookingSaga - Dead Letter Queue', () => {
         jest.clearAllMocks();
     });
 
-    const createMockDto = (): TravelBookingDto => ({
+    const createMockDto = (): TravelBookingRequestDto => ({
         userId: 'user-123',
         flightOrigin: 'JFK',
         flightDestination: 'LAX',

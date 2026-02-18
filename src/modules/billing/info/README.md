@@ -296,6 +296,14 @@ Key metrics to track:
 -   [ ] Proration for plan changes
 -   [ ] Usage-based billing
 
-## Support
+# ClientProxyFactory vs ClientsModule overview
 
-For issues or questions, contact the development team or check the main project documentation.
+|                              | ClientsModule | ClientProxyFactory |
+| ---------------------------- | ------------- | ------------------ |
+| ✅ Auto connect/disconnect   | ✅            | ❌                 |
+| ✅ Graceful shutdown         | ✅            | ❌                 |
+| ✅ Retry logic               | ✅            | ❌                 |
+| ✅ Health checks             | ✅            | ❌                 |
+| ✅ Connection pooling        | ✅            | ❌                 |
+| ✅ ConfigService integration | ✅            | ⚠️ Ручная          |
+| ✅ Observability             | ✅            | ❌                 |

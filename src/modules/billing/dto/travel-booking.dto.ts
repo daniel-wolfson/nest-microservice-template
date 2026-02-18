@@ -1,11 +1,15 @@
 import { IsString, IsNotEmpty, IsDateString, IsNumber, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class TravelBookingDto {
+export class TravelBookingRequestDto {
     @ApiProperty({ description: 'User ID initiating the booking' })
     @IsString()
     @IsNotEmpty()
     userId: string;
+
+    @ApiProperty({ description: 'Reservation ID' })
+    @IsNotEmpty()
+    reservationId: string;
 
     @ApiProperty({ description: 'Origin airport code' })
     @IsString()
@@ -66,6 +70,10 @@ export class TravelBookingResponseDto {
     @ApiProperty({ description: 'Booking ID' })
     bookingId: string;
 
+    @ApiProperty({ description: 'Travel booking request details' })
+    @IsNotEmpty()
+    travelBookingRequest: TravelBookingRequestDto;
+
     @ApiProperty({ description: 'Flight reservation ID' })
     flightReservationId?: string;
 
@@ -77,6 +85,7 @@ export class TravelBookingResponseDto {
 
     @ApiProperty({ description: 'Booking status' })
     status: 'pending' | 'confirmed' | 'failed' | 'compensated';
+
 
     @ApiProperty({ description: 'Error message if failed' })
     errorMessage?: string;

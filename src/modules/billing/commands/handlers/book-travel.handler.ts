@@ -10,7 +10,7 @@ export class BookTravelHandler implements ICommandHandler<BookTravelCommand> {
 
     constructor(private readonly travelBookingSaga: TravelBookingSaga) {}
 
-    async execute(command: BookTravelCommand): Promise<TravelBookingResponseDto> {
+    async execute(command: BookTravelCommand): Promise<BookingExecutionResult> {
         this.logger.log('Executing BookTravelCommand');
 
         try {

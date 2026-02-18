@@ -1,20 +1,24 @@
 import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
 import { Logger, Inject } from '@nestjs/common';
-import { ClientProxy } from '@nestjs/microservices';
 import { UserBalanceLowEvent } from '../impl/user-balance-low.event';
+import { BILLING_BROKER_CLIENT } from '../../brokers/billing-broker.constants';
+import { BillingBrokerClient } from '../../brokers/billing-broker-client.interface';
 
 @EventsHandler(UserBalanceLowEvent)
 export class UserBalanceLowHandler implements IEventHandler<UserBalanceLowEvent> {
     private readonly logger = new Logger(UserBalanceLowHandler.name);
 
-    constructor(@Inject('BILLING_SERVICE') private readonly client: ClientProxy) {}
+    constructor(
+        @Inject(BILLING_BROKER_CLIENT)
+        private readonly client: BillingBrokerClient,
+    ) {}
 
     async handle(event: UserBalanceLowEvent) {
         this.logger.log(`Handling UserBalanceLowEvent for user ${event.userId}`);
 
         try {
             // Send warning to notification service
-            this.client.emit('user.balance.low', {
+            await this.client.emit('user.balance.low', {
                 userId: event.userId,
                 currentBalance: event.currentBalance,
                 threshold: event.threshold,

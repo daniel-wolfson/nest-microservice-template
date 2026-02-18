@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
+import { INestApplication, Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
-import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ClientProxy, ClientsModule, MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BillingController } from './controllers/billing.controller';
 import { BillingService } from './services/billing.service';
@@ -18,7 +18,10 @@ import { TravelBookingController } from './controllers/travel-booking.controller
 import { FlightService } from './services/flight.service';
 import { HotelService } from './services/hotel.service';
 import { CarRentalService } from './services/car-rental.service';
-import { TravelBookingSaga } from './sagas/travel-booking.saga';
+import { BILLING_BROKER_CLIENT } from './brokers/billing-broker.constants';
+import { ClientProxyBillingBrokerClient } from './brokers/client-proxy-billing-broker.client';
+import { messageBrokerClientOptionsFactory } from './services/message-broker-client.factory';
+import { SagaModule } from './sagas/travel-booking-saga.module';
 
 @Module({
     imports: [
@@ -27,31 +30,13 @@ import { TravelBookingSaga } from './sagas/travel-booking.saga';
             prismaServiceOptions: {},
         }),
         ConfigModule,
+        SagaModule, // Import SagaModule for MongoDB-backed saga state management
         ClientsModule.registerAsync([
             {
-                name: 'BILLING_SERVICE',
+                name: 'MESSAGE_BROKER_CLIENT',
                 imports: [ConfigModule],
-                useFactory: (configService: ConfigService) => ({
-                    transport: Transport.RMQ,
-                    options: {
-                        urls: [
-                            `amqp://${configService.get('RABBITMQ_DEFAULT_USER', 'admin')}:${configService.get(
-                                'RABBITMQ_DEFAULT_PASS',
-                                '123456',
-                            )}
-                            @${configService.get('RABBITMQ_HOST', 'localhost')}:${configService.get(
-                                'RABBITMQ_PORT',
-                                '5672',
-                            )}`,
-                        ],
-                        queue: 'billing_queue',
-                        queueOptions: {
-                            durable: true,
-                        },
-                        prefetchCount: 1,
-                    },
-                }),
                 inject: [ConfigService],
+                useFactory: messageBrokerClientOptionsFactory,
             },
         ]),
     ],
@@ -65,7 +50,13 @@ import { TravelBookingSaga } from './sagas/travel-booking.saga';
         FlightService,
         HotelService,
         CarRentalService,
-        TravelBookingSaga,
+        {
+            provide: BILLING_BROKER_CLIENT,
+            useFactory: (messageBrokerClient: ClientProxy) => {
+                return new ClientProxyBillingBrokerClient(messageBrokerClient);
+            },
+            inject: ['MESSAGE_BROKER_CLIENT'],
+        },
         ...CommandHandlers,
         ...QueryHandlers,
         ...EventHandlers,

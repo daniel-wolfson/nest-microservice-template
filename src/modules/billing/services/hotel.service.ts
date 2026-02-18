@@ -36,6 +36,10 @@ export class HotelService {
             confirmationCode,
             status: 'confirmed',
             amount: dto.amount,
+            checkInDate: dto.checkInDate,
+            checkOutDate: dto.checkOutDate,
+            hotelId: dto.hotelId,
+            timestamp: new Date().toISOString(),
         };
 
         this.reservations.set(reservationId, result);
@@ -76,11 +80,11 @@ export class HotelService {
     }
 
     private generateId(prefix: string): string {
-        return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        return `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     }
 
     private generateConfirmationCode(): string {
-        return Math.random().toString(36).substr(2, 6).toUpperCase();
+        return Math.random().toString(36).substring(2, 6).toUpperCase();
     }
 
     private async simulateDelay(ms: number): Promise<void> {

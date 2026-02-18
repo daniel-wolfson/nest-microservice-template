@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { BadRequestException, INestApplication, Module, ValidationPipe } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
@@ -19,6 +19,75 @@ import { UserModule } from './users/user.module';
 import { AuthenticationModule } from './authentication/authentication.module';
 import { AppConfigModule } from './app-config/app-config.module';
 import { BillingModule } from './billing';
+import { ValidationExceptionFilter } from '@/common/filters/validation-exception.filter';
+import { GlobalExceptionFilter } from '@/common/filters/global-exception.filter';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+
+// Extract global middleware configuration
+export function configureGlobalMiddleware(app: INestApplication, environmentConfig: any) {
+    // Global Exception Filters (order matters - most specific first)
+    app.useGlobalFilters(new ValidationExceptionFilter(), new GlobalExceptionFilter(app.get(ConfigService)));
+
+    // Global validation pipe
+    app.useGlobalPipes(
+        new ValidationPipe({
+            whitelist: true,
+            forbidNonWhitelisted: true,
+            transform: true,
+            disableErrorMessages: environmentConfig.isProduction,
+            exceptionFactory: errors => {
+                const formattedErrors = errors.reduce((acc, error) => {
+                    acc[error.property] = Object.values(error.constraints || {});
+                    return acc;
+                }, {} as Record<string, string[]>);
+
+                return new BadRequestException({
+                    message: 'Validation failed',
+                    errors: formattedErrors,
+                });
+            },
+        }),
+    );
+
+    // CORS configuration
+    const corsConfig = getCorsConfiguration(environmentConfig.isProduction);
+    app.enableCors(corsConfig);
+}
+
+// Extract CORS configuration
+export function getCorsConfiguration(isProduction: boolean) {
+    const origin = isProduction ? ['https://yourdomain.com', 'https://api.yourdomain.com'] : true;
+
+    return {
+        origin,
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+    };
+}
+
+// Extract Swagger setup
+export function setupSwagger(app: any, environmentConfig: any) {
+    const config = new DocumentBuilder()
+        .setTitle('Microservice API')
+        .setDescription(`API Documentation - ${environmentConfig.environment}`)
+        .setVersion('1.0')
+        .addBearerAuth(
+            {
+                type: 'http',
+                scheme: 'bearer',
+                bearerFormat: 'JWT',
+                name: 'JWT',
+                description: 'Enter JWT token',
+                in: 'header',
+            },
+            'JWT-auth',
+        )
+        .build();
+
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('/api', app, document);
+}
 
 @Module({
     imports: [
