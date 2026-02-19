@@ -1,42 +1,34 @@
 module.exports = {
-    "moduleFileExtensions": [
-            "js",
-            "json",
-            "ts"
-        ],
-        "rootDir": ".",
-        "testRegex": ".*\\.(spec|test)\\.ts$",
-        "transform": {
-            "^.+\\.(t|j)s$": "ts-jest"
-        },
-        "collectCoverageFrom": [
-            "**/*.(t|j)s",
-            "!**/*.spec.ts",
-            "!**/*.test.ts",
-            "!**/node_modules/**",
-            "!**/dist/**",
-            "!**/coverage/**"
-        ],
-        "coverageDirectory": "./coverage",
-        "testEnvironment": "node",
-        "roots": [
-            "<rootDir>/src/",
-            "<rootDir>/libs/",
-            "<rootDir>/tests/"
-        ],
-        "moduleNameMapper": {
-            "#main-entry-point": "<rootDir>/node_modules/.prisma/client/index.js",
-            "^@lib/errors(|/.*)$": "<rootDir>/libs/errors/src/$1",
-            "^@lib/providers(|/.*)$": "<rootDir>/libs/providers/src/$1",
-            "^@lib/shared(|/.*)$": "<rootDir>/libs/shared/src/$1",
-            "^@lib/entities(|/.*)$": "<rootDir>/libs/entities/src/$1",
-            "^@lib/domains(|/.*)$": "<rootDir>/libs/domains/src/$1",
-            "^@generator/generator(|/.*)$": "<rootDir>/libs/generator/src/$1",
-            "^@core/(.*)$": "<rootDir>/src/core/$1",
-            "^@src/(.*)$": "<rootDir>/src/$1",
-            "^src/(.*)$": "<rootDir>/src/$1",
-            "^@/(.*)$": "<rootDir>/src/$1",
-            "^@lib/(.*)$": "<rootDir>/libs/$1",
-        }
+    moduleFileExtensions: ['js', 'json', 'ts'],
+    rootDir: '.',
+    testRegex: '.*\\.(spec|test)\\.ts$',
+    transform: {
+        '^.+\\.(t|j)s$': 'ts-jest',
+    },
+    collectCoverageFrom: [
+        '**/*.(t|j)s',
+        '!**/*.spec.ts',
+        '!**/*.test.ts',
+        '!**/node_modules/**',
+        '!**/dist/**',
+        '!**/coverage/**',
+    ],
+    coverageDirectory: './coverage',
+    testEnvironment: 'node',
+    forceExit: true,
+    roots: ['<rootDir>/src/', '<rootDir>/libs/', '<rootDir>/tests/'],
+    moduleNameMapper: {
+        '#main-entry-point': '<rootDir>/node_modules/.prisma/client/index.js',
+        '^@lib/errors(|/.*)$': '<rootDir>/libs/errors/src/$1',
+        '^@lib/providers(|/.*)$': '<rootDir>/libs/providers/src/$1',
+        '^@lib/shared(|/.*)$': '<rootDir>/libs/shared/src/$1',
+        '^@lib/entities(|/.*)$': '<rootDir>/libs/entities/src/$1',
+        '^@lib/domains(|/.*)$': '<rootDir>/libs/domains/src/$1',
+        '^@generator/generator(|/.*)$': '<rootDir>/libs/generator/src/$1',
+        '^@core/(.*)$': '<rootDir>/src/core/$1',
+        '^@src/(.*)$': '<rootDir>/src/$1',
+        '^src/(.*)$': '<rootDir>/src/$1',
+        '^@/(.*)$': '<rootDir>/src/$1',
+        '^@lib/(.*)$': '<rootDir>/libs/$1',
+    },
 };
-

@@ -22,6 +22,7 @@ import { BillingModule } from './billing';
 import { ValidationExceptionFilter } from '@/common/filters/validation-exception.filter';
 import { GlobalExceptionFilter } from '@/common/filters/global-exception.filter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { RedisModule } from './cache/cache.redis.module';
 
 // Extract global middleware configuration
 export function configureGlobalMiddleware(app: INestApplication, environmentConfig: any) {
@@ -110,6 +111,7 @@ export function setupSwagger(app: any, environmentConfig: any) {
         AuthenticationModule,
         DomainsModule,
         UserModule,
+        RedisModule,
         BillingModule,
 
         // Integration modules

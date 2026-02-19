@@ -25,7 +25,7 @@ export class CarRentalService {
         // Simulate 30% failure rate for testing compensation
         if (Math.random() < 0.3) {
             this.logger.error('Car rental reservation failed - no available cars');
-            throw new Error('No available cars for the selected location and dates');
+            //throw new Error('No available cars for the selected location and dates');
         }
 
         const reservationId = this.generateId('CAR');
@@ -80,7 +80,7 @@ export class CarRentalService {
     }
 
     private generateConfirmationCode(): string {
-        return Math.random().toString(36).substr(2, 6).toUpperCase();
+        return Math.random().toString(36).substring(2, 6).toUpperCase();
     }
 
     private async simulateDelay(ms: number): Promise<void> {

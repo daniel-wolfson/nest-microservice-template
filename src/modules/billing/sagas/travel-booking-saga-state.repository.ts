@@ -5,7 +5,7 @@ import {
     TravelBookingSagaState,
     TravelBookingSagaStateDocument,
     SagaStatus,
-} from '../schemas/travel-booking-saga-state.schema';
+} from './travel-booking-saga-state.schema';
 
 @Injectable()
 export class TravelBookingSagaStateRepository {

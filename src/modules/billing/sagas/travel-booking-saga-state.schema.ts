@@ -17,13 +17,13 @@ export enum SagaStatus {
 
 @Schema({ timestamps: true, collection: 'travel_booking_saga_states' })
 export class TravelBookingSagaState {
-    @Prop({ required: true, unique: true, index: true })
+    @Prop({ required: true, unique: true }) // Removed 'index: true'
     bookingId: string;
 
-    @Prop({ required: true, index: true })
+    @Prop({ required: true }) // Removed 'index: true'
     reservationId: string;
 
-    @Prop({ required: true, index: true })
+    @Prop({ required: true }) // Removed 'index: true'
     userId: string;
 
     @Prop({ required: true, type: String, enum: SagaStatus, default: SagaStatus.PENDING })
@@ -69,7 +69,7 @@ export class TravelBookingSagaState {
 export const TravelBookingSagaStateSchema = SchemaFactory.createForClass(TravelBookingSagaState);
 
 // Add indexes for common queries
-TravelBookingSagaStateSchema.index({ bookingId: 1 });
+TravelBookingSagaStateSchema.index({ bookingId: 1 }, { unique: true });
 TravelBookingSagaStateSchema.index({ reservationId: 1 });
 TravelBookingSagaStateSchema.index({ userId: 1, status: 1 });
 TravelBookingSagaStateSchema.index({ status: 1, createdAt: -1 });

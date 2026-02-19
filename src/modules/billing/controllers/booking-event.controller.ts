@@ -1,8 +1,6 @@
 import { Controller, Logger } from '@nestjs/common';
 import { EventPattern, Payload, Ctx, RmqContext } from '@nestjs/microservices';
 import { CommandBus, EventBus } from '@nestjs/cqrs';
-import { OrderCreatedEvent } from '../events/impl/order-created.event';
-import { CreateInvoiceCommand } from '../commands/impl/create-invoice.command';
 import {
     TravelBookingFlightReservationEvent,
     TravelBookingHotelReservationEvent,
@@ -12,12 +10,14 @@ import { FlightService } from '../services/flight.service';
 import { HotelService } from '../services/hotel.service';
 import { CarRentalService } from '../services/car-rental.service';
 import { HotelReservationDto } from '../dto/hotel-reservation.dto';
+import { FlightReservationDto } from '../dto/flight-reservation.dto';
+import { CarRentalReservationDto } from '../dto/car-rental-reservation.dto';
 import { plainToClass } from 'class-transformer';
 import { validate } from 'class-validator';
 
 @Controller()
-export class BookingSagaMessageController {
-    private readonly logger = new Logger(BookingSagaMessageController.name);
+export class BookingEventController {
+    private readonly logger = new Logger(BookingEventController.name);
 
     constructor(
         private readonly commandBus: CommandBus,
@@ -27,9 +27,6 @@ export class BookingSagaMessageController {
         private readonly carRentalService: CarRentalService,
     ) {}
 
-    /**
-     * Handle reservation.hotel.requested events from Booking saga service
-     */
     @EventPattern('reservation.hotel.requested')
     async handleReservationHotelRequested(@Payload() data: any, @Ctx() context: RmqContext) {
         this.logger.log(`Received reservation.hotel.requested event: ${JSON.stringify(data)}`);
@@ -54,7 +51,7 @@ export class BookingSagaMessageController {
                 throw new Error(`Validation failed: ${errorMessages.join(', ')}`);
             }
 
-            // reservation-step 2: Reserve Hotel
+            // Reservation-step 2: Reserve Hotel
             var hotelReservation = await this.hotelService.reserveHotel(hotelDto);
             this.logger.log(`✓ Step 2 Complete: Hotel Reserved (${hotelReservation.reservationId})`);
 
@@ -79,9 +76,6 @@ export class BookingSagaMessageController {
         }
     }
 
-    /**
-     * Handle reservation.hotel.confirmed events
-     */
     @EventPattern('reservation.hotel.confirmed')
     async handleReservationHotelConfirmed(@Payload() data: any, @Ctx() context: RmqContext) {
         this.logger.log(`Received reservation.hotel.confirmed event: ${JSON.stringify(data)}`);
@@ -117,9 +111,54 @@ export class BookingSagaMessageController {
         }
     }
 
-    /**
-     * Handle reservation.flight.confirmed events
-     */
+    @EventPattern('reservation.flight.requested')
+    async handleReservationFlightRequested(@Payload() data: any, @Ctx() context: RmqContext) {
+        this.logger.log(`Received reservation.flight.requested event: ${JSON.stringify(data)}`);
+
+        try {
+            const channel = context.getChannelRef();
+            const originalMsg = context.getMessage();
+            channel.ack(originalMsg);
+
+            const flightDto = plainToClass(FlightReservationDto, {
+                userId: data.userId,
+                origin: data.flightOrigin,
+                destination: data.flightDestination,
+                departureDate: data.departureDate,
+                returnDate: data.returnDate,
+                amount: data.totalAmount,
+            });
+
+            const errors = await validate(flightDto);
+            if (errors.length > 0) {
+                const errorMessages = errors.map(err => Object.values(err.constraints || {})).flat();
+                throw new Error(`Validation failed: ${errorMessages.join(', ')}`);
+            }
+
+            // Reservation-step 1: Reserve Flight
+            const flightReservation = await this.flightService.reserveFlight(flightDto);
+            this.logger.log(`✓ Step 1 Complete: Flight Reserved (${flightReservation.reservationId})`);
+
+            // Publish internal event
+            this.eventBus.publish(
+                new TravelBookingFlightReservationEvent(
+                    data.bookingId,
+                    data.userId,
+                    flightReservation.reservationId,
+                    flightReservation.amount,
+                    new Date(),
+                ),
+            );
+
+            this.logger.log(`Flight reservation event processed successfully`);
+        } catch (error: any) {
+            this.logger.error(`Failed to process reservation.flight.requested event: ${error?.message}`);
+            const channel = context.getChannelRef();
+            const originalMsg = context.getMessage();
+            channel.nack(originalMsg, false, true);
+        }
+    }
+
     @EventPattern('reservation.flight.confirmed')
     async handleReservationFlightConfirmed(@Payload() data: any, @Ctx() context: RmqContext) {
         this.logger.log(`Received reservation.flight.confirmed event: ${JSON.stringify(data)}`);
@@ -155,9 +194,53 @@ export class BookingSagaMessageController {
         }
     }
 
-    /**
-     * Handle reservation.carRental.confirmed events
-     */
+    @EventPattern('reservation.carRental.requested')
+    async handleReservationCarRentalRequested(@Payload() data: any, @Ctx() context: RmqContext) {
+        this.logger.log(`Received reservation.carRental.requested event: ${JSON.stringify(data)}`);
+
+        try {
+            const channel = context.getChannelRef();
+            const originalMsg = context.getMessage();
+            channel.ack(originalMsg);
+
+            const carDto = plainToClass(CarRentalReservationDto, {
+                userId: data.userId,
+                pickupLocation: data.carPickupLocation,
+                dropoffLocation: data.carDropoffLocation,
+                pickupDate: data.carPickupDate,
+                dropoffDate: data.carDropoffDate,
+                amount: data.totalAmount,
+            });
+            const errors = await validate(carDto);
+            if (errors.length > 0) {
+                const errorMessages = errors.map(err => Object.values(err.constraints || {})).flat();
+                throw new Error(`Validation failed: ${errorMessages.join(', ')}`);
+            }
+
+            // Reservation-step 3: Reserve Car
+            const carReservation = await this.carRentalService.reserveCar(carDto);
+            this.logger.log(`✓ Step 3 Complete: Car Reserved (${carReservation.reservationId})`);
+
+            // Publish internal event
+            this.eventBus.publish(
+                new TravelBookingCarRentalReservationEvent(
+                    data.bookingId,
+                    data.userId,
+                    carReservation.reservationId,
+                    carReservation.amount,
+                    new Date(),
+                ),
+            );
+
+            this.logger.log(`Car rental reservation event processed successfully`);
+        } catch (error: any) {
+            this.logger.error(`Failed to process reservation.carRental.requested event: ${error?.message}`);
+            const channel = context.getChannelRef();
+            const originalMsg = context.getMessage();
+            channel.nack(originalMsg, false, true);
+        }
+    }
+
     @EventPattern('reservation.carRental.confirmed')
     async handleReservationCarRentalConfirmed(@Payload() data: any, @Ctx() context: RmqContext) {
         this.logger.log(`Received reservation.carRental.confirmed event: ${JSON.stringify(data)}`);

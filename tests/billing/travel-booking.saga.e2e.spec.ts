@@ -1,26 +1,40 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import { EventBus } from '@nestjs/cqrs';
+import { CqrsModule, EventBus } from '@nestjs/cqrs';
+import { HttpModule } from '@nestjs/axios';
 import Redis from 'ioredis';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { getModelToken } from '@nestjs/mongoose';
 import { TravelBookingSaga } from '@/modules/billing/sagas/travel-booking.saga';
-import { TravelBookingSagaStateRepository } from '@/modules/billing/sagas/repositories/travel-booking-saga-state.repository';
-import { SagaCoordinator } from '@/modules/billing/sagas/services/saga-coordinator.service';
+import { TravelBookingSagaStateRepository } from '@/modules/billing/sagas/travel-booking-saga-state.repository';
+import { SagaCoordinator } from '@/modules/billing/sagas/saga-coordinator.service';
 import {
     TravelBookingSagaState,
     TravelBookingSagaStateSchema,
     SagaStatus,
-} from '@/modules/billing/sagas/schemas/travel-booking-saga-state.schema';
+} from '@/modules/billing/sagas/travel-booking-saga-state.schema';
 import { TravelBookingRequestDto } from '@/modules/billing/dto/travel-booking.dto';
 import { FlightService } from '@/modules/billing/services/flight.service';
 import { HotelService } from '@/modules/billing/services/hotel.service';
 import { CarRentalService } from '@/modules/billing/services/car-rental.service';
 import { BILLING_BROKER_CLIENT } from '@/modules/billing/brokers/billing-broker.constants';
+import {
+    TravelBookingFlightReservationEvent,
+    TravelBookingHotelReservationEvent,
+    TravelBookingCarRentalReservationEvent,
+} from '@/modules/billing/events/impl/booking-reservation-event';
+import { TravelBookingFlightReservationHandler } from '@/modules/billing/events/handlers/travel-booking-flight-reservation.handler';
+import { TravelBookingHotelReservationHandler } from '@/modules/billing/events/handlers/travel-booking-hotel-reservation.handler';
+import { TravelBookingCarRentalReservationHandler } from '@/modules/billing/events/handlers/travel-booking-car-rental-reservation.handler';
+import {
+    BookingNotificationService,
+    BookingNotification,
+} from '@/modules/billing/services/booking-notification.service';
 import { randomUUID } from 'crypto';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { REDIS_CLIENT, RedisModule } from '@/modules/cache/cache.redis.module';
 
 const execAsync = promisify(exec);
 
@@ -48,7 +62,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
     let saga: TravelBookingSaga;
     let sagaStateRepository: TravelBookingSagaStateRepository;
     let sagaCoordinator: SagaCoordinator;
-    let redisClient: Redis;
+    let redis: Redis;
     let sagaStateModel: Model<TravelBookingSagaState>;
 
     const MONGODB_URI = 'mongodb://admin:123456@localhost:27017/microservice-template-billing-test?authSource=admin';
@@ -95,26 +109,17 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             throw new Error('Docker services required for E2E tests');
         }
 
-        // Initialize Redis client
-        redisClient = new Redis({
-            host: REDIS_HOST,
-            port: REDIS_PORT,
-            retryStrategy: times => {
-                if (times > 3) return null;
-                return Math.min(times * 100, 2000);
-            },
-        });
-
-        await redisClient.ping();
-        console.log('✅ Redis connection established');
-
         // Create NestJS testing module with real MongoDB and Redis
         const moduleFixture: TestingModule = await Test.createTestingModule({
             imports: [
                 MongooseModule.forRoot(MONGODB_URI),
                 MongooseModule.forFeature([
-                    { name: TravelBookingSagaState.name, schema: TravelBookingSagaStateSchema },
+                    {
+                        name: TravelBookingSagaState.name,
+                        schema: TravelBookingSagaStateSchema,
+                    },
                 ]),
+                RedisModule,
             ],
             providers: [
                 TravelBookingSaga,
@@ -141,6 +146,12 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
         app = moduleFixture.createNestApplication();
         await app.init();
 
+        // ✅ Get Redis client from DI container
+        redis = moduleFixture.get<Redis>(REDIS_CLIENT);
+
+        var pongResult = await redis.ping();
+        console.log(`✅ Redis connection established ${pongResult.toString() == 'PONG' ? 'successful' : 'failed'}`);
+
         saga = moduleFixture.get<TravelBookingSaga>(TravelBookingSaga);
         sagaStateRepository = moduleFixture.get<TravelBookingSagaStateRepository>(TravelBookingSagaStateRepository);
         sagaCoordinator = moduleFixture.get<SagaCoordinator>(SagaCoordinator);
@@ -154,18 +165,18 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
         console.log('🧹 Cleaning up E2E Test...');
 
         // Clear test data from MongoDB
-        await sagaStateModel.deleteMany({ userId: 'e2e-user-123' });
+        // await sagaStateModel.deleteMany({ userId: 'e2e-user-123' });
         console.log('✅ MongoDB test data cleaned');
 
         // Clear test data from Redis
-        const keys = await redisClient.keys('saga:*');
+        const keys = await redis.keys('saga:*');
         if (keys.length > 0) {
-            await redisClient.del(...keys);
+            await redis.del(...keys);
         }
         console.log('✅ Redis test data cleaned');
 
-        // Close connections
-        await redisClient.quit();
+        // app.close() calls RedisModule.onModuleDestroy() which calls redis.quit() —
+        // do NOT call redis.quit() manually here to avoid double-close (ECONNRESET).
         await app.close();
         console.log('✅ Connections closed');
     }, 30000);
@@ -173,9 +184,9 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
     beforeEach(async () => {
         // Clear previous test data
         await sagaStateModel.deleteMany({ userId: 'e2e-user-123' });
-        const keys = await redisClient.keys('saga:*');
+        const keys = await redis.keys('saga:*');
         if (keys.length > 0) {
-            await redisClient.del(...keys);
+            await redis.del(...keys);
         }
     });
 
@@ -202,7 +213,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             const result = await saga.execute(mockTravelBookingDto);
 
             // Lock should be released after execution
-            const lockExists = await redisClient.exists(`saga:lock:${result.bookingId}`);
+            const lockExists = await redis.exists(`saga:lock:${result.bookingId}`);
             expect(lockExists).toBe(0); // Lock released
 
             console.log(`✅ Distributed lock managed correctly`);
@@ -212,7 +223,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             const result = await saga.execute(mockTravelBookingDto);
 
             // Check if state was cached
-            const cachedState = await redisClient.get(`saga:inflight:${result.bookingId}`);
+            const cachedState = await redis.get(`saga:inflight:${result.bookingId}`);
             expect(cachedState).toBeDefined();
 
             const parsedState = JSON.parse(cachedState!);
@@ -226,9 +237,9 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             const result = await saga.execute(mockTravelBookingDto);
 
             // Check step counters
-            const hotelStep = await redisClient.hget(`saga:steps:${result.bookingId}`, 'hotel_requested');
-            const flightStep = await redisClient.hget(`saga:steps:${result.bookingId}`, 'flight_requested');
-            const carStep = await redisClient.hget(`saga:steps:${result.bookingId}`, 'car_requested');
+            const hotelStep = await redis.hget(`saga:steps:${result.bookingId}`, 'hotel_requested');
+            const flightStep = await redis.hget(`saga:steps:${result.bookingId}`, 'flight_requested');
+            const carStep = await redis.hget(`saga:steps:${result.bookingId}`, 'car_requested');
 
             expect(hotelStep).toBe('1');
             expect(flightStep).toBe('1');
@@ -241,7 +252,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             const result = await saga.execute(mockTravelBookingDto);
 
             // Check pending queue
-            const pendingScore = await redisClient.zscore('saga:pending', result.bookingId);
+            const pendingScore = await redis.zscore('saga:pending', result.bookingId);
             expect(pendingScore).toBeDefined();
 
             console.log(`✅ Saga added to pending queue`);
@@ -347,7 +358,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             const bookingId = executeResult.bookingId;
 
             // Verify Redis data exists
-            const cachedBefore = await redisClient.get(`saga:inflight:${bookingId}`);
+            const cachedBefore = await redis.get(`saga:inflight:${bookingId}`);
             expect(cachedBefore).toBeDefined();
 
             // Aggregate results
@@ -377,9 +388,9 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             await saga.aggregateResults(bookingId, flightResult, hotelResult, carResult);
 
             // Verify Redis cleanup
-            const cachedAfter = await redisClient.get(`saga:inflight:${bookingId}`);
-            const stepsAfter = await redisClient.exists(`saga:steps:${bookingId}`);
-            const metadataAfter = await redisClient.exists(`saga:metadata:${bookingId}`);
+            const cachedAfter = await redis.get(`saga:inflight:${bookingId}`);
+            const stepsAfter = await redis.exists(`saga:steps:${bookingId}`);
+            const metadataAfter = await redis.exists(`saga:metadata:${bookingId}`);
 
             expect(cachedAfter).toBeNull();
             expect(stepsAfter).toBe(0);
@@ -416,7 +427,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             const result = await saga.execute(mockTravelBookingDto);
 
             // Verify Redis error metadata
-            const metadata = await redisClient.hgetall(`saga:metadata:${result.bookingId}`);
+            const metadata = await redis.hgetall(`saga:metadata:${result.bookingId}`);
             expect(metadata.error).toContain('E2E Redis Metadata Test');
 
             console.log(`✅ Error metadata set in Redis`);
@@ -453,7 +464,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             const bookingId = executeResult.bookingId;
 
             // Manually expire Redis cache
-            await redisClient.del(`saga:inflight:${bookingId}`);
+            await redis.del(`saga:inflight:${bookingId}`);
 
             // Try to get cached state (should return null)
             const redisState = await sagaCoordinator.getInFlightState(bookingId);
@@ -483,7 +494,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             console.log(`  ✓ Step 2: Pending state verified in MongoDB`);
 
             // Step 3: Verify Redis coordination active
-            const cachedState = await redisClient.get(`saga:inflight:${executeResult.bookingId}`);
+            const cachedState = await redis.get(`saga:inflight:${executeResult.bookingId}`);
             expect(cachedState).toBeDefined();
             console.log(`  ✓ Step 3: Redis coordination active`);
 
@@ -515,11 +526,219 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             console.log(`  ✓ Step 5: Confirmed state persisted in MongoDB`);
 
             // Step 6: Verify Redis cleanup
-            const cleanedCache = await redisClient.get(`saga:inflight:${executeResult.bookingId}`);
+            const cleanedCache = await redis.get(`saga:inflight:${executeResult.bookingId}`);
             expect(cleanedCache).toBeNull();
             console.log(`  ✓ Step 6: Redis coordination data cleaned`);
 
             console.log('✅ Complete saga lifecycle verified successfully!');
+        }, 30000);
+    });
+
+    describe('Event-Driven Saga Lifecycle (Real Event Handlers, No Manual aggregateResults)', () => {
+        let app2: INestApplication;
+        let saga2: TravelBookingSaga;
+        let eventBus2: EventBus;
+        let sagaStateModel2: Model<TravelBookingSagaState>;
+        let redis2: Redis;
+        let notificationService: BookingNotificationService;
+
+        beforeAll(async () => {
+            console.log('🚀 Setting up event-driven E2E test module...');
+
+            const moduleFixture2: TestingModule = await Test.createTestingModule({
+                imports: [
+                    CqrsModule,
+                    HttpModule,
+                    MongooseModule.forRoot(MONGODB_URI),
+                    MongooseModule.forFeature([
+                        { name: TravelBookingSagaState.name, schema: TravelBookingSagaStateSchema },
+                    ]),
+                    RedisModule,
+                ],
+                providers: [
+                    TravelBookingSaga,
+                    // Mock services so saga2.execute() always succeeds (no random failures)
+                    // The event handlers will overwrite the service-generated IDs with the
+                    // event-provided IDs, so the actual values returned here don't matter.
+                    {
+                        provide: FlightService,
+                        useValue: {
+                            reserveFlight: jest.fn().mockResolvedValue({
+                                reservationId: 'mock-flight-' + Date.now(),
+                                confirmationCode: 'FL-MOCK',
+                                status: 'confirmed',
+                                amount: 1500,
+                            }),
+                            cancelFlight: jest.fn().mockResolvedValue(undefined),
+                            getReservation: jest.fn().mockResolvedValue(null),
+                        },
+                    },
+                    {
+                        provide: HotelService,
+                        useValue: {
+                            reserveHotel: jest.fn().mockResolvedValue({
+                                reservationId: 'mock-hotel-' + Date.now(),
+                                confirmationCode: 'HT-MOCK',
+                                status: 'confirmed',
+                                amount: 1800,
+                                checkInDate: '2026-05-01',
+                                checkOutDate: '2026-05-08',
+                                hotelId: 'hotel-mock',
+                                timestamp: new Date().toISOString(),
+                            }),
+                            cancelHotel: jest.fn().mockResolvedValue(undefined),
+                            getReservation: jest.fn().mockResolvedValue(null),
+                        },
+                    },
+                    {
+                        provide: CarRentalService,
+                        useValue: {
+                            reserveCar: jest.fn().mockResolvedValue({
+                                reservationId: 'mock-car-' + Date.now(),
+                                confirmationCode: 'CR-MOCK',
+                                status: 'confirmed',
+                                amount: 200,
+                            }),
+                            cancelCar: jest.fn().mockResolvedValue(undefined),
+                            getReservation: jest.fn().mockResolvedValue(null),
+                        },
+                    },
+                    TravelBookingSagaStateRepository,
+                    SagaCoordinator,
+                    BookingNotificationService,
+                    // Real event handlers — JOIN POINT logic runs inside them
+                    TravelBookingFlightReservationHandler,
+                    TravelBookingHotelReservationHandler,
+                    TravelBookingCarRentalReservationHandler,
+                    {
+                        provide: BILLING_BROKER_CLIENT,
+                        useValue: { emit: jest.fn().mockResolvedValue(undefined) },
+                    },
+                ],
+            }).compile();
+
+            app2 = moduleFixture2.createNestApplication();
+            await app2.init();
+
+            redis2 = moduleFixture2.get<Redis>(REDIS_CLIENT);
+            saga2 = moduleFixture2.get<TravelBookingSaga>(TravelBookingSaga);
+            eventBus2 = moduleFixture2.get<EventBus>(EventBus);
+            sagaStateModel2 = moduleFixture2.get<Model<TravelBookingSagaState>>(
+                getModelToken(TravelBookingSagaState.name),
+            );
+            notificationService = moduleFixture2.get<BookingNotificationService>(BookingNotificationService);
+
+            console.log('✅ Event-driven test module initialized');
+        }, 60000);
+
+        afterAll(async () => {
+            const keys = await redis2.keys('saga:*');
+            if (keys.length > 0) await redis2.del(...keys);
+            // app2.close() calls RedisModule.onModuleDestroy() which quits redis2 —
+            // do NOT call redis2.quit() manually here to avoid double-close (ECONNRESET).
+            await app2.close();
+        }, 30000);
+
+        beforeEach(async () => {
+            await sagaStateModel2.deleteMany({ userId: 'e2e-user-123' });
+            const keys = await redis2.keys('saga:*');
+            if (keys.length > 0) await redis2.del(...keys);
+        });
+
+        it('should complete saga via real event handlers: execute → publish events → handlers fire JOIN POINT → confirmed', async () => {
+            console.log('🔄 Testing event-driven saga lifecycle...');
+
+            // Step 1: Execute saga — persists PENDING state, emits broker messages
+            const executeResult = await saga2.execute(mockTravelBookingDto);
+            expect(executeResult.status).toBe('pending');
+            const bookingId = executeResult.bookingId;
+            console.log(`  ✓ Step 1: Saga executed → bookingId: ${bookingId}`);
+
+            // Step 2: Subscribe to BookingNotificationService BEFORE publishing events
+            //         so we don't miss the notification if handlers are very fast
+            const confirmationPromise = new Promise<BookingNotification>((resolve, reject) => {
+                const subscription = notificationService.getBookingStream(bookingId).subscribe({
+                    next: notification => {
+                        subscription.unsubscribe();
+                        resolve(notification);
+                    },
+                    error: err => {
+                        subscription.unsubscribe();
+                        reject(err);
+                    },
+                });
+                setTimeout(() => {
+                    subscription.unsubscribe();
+                    reject(new Error(`Timeout: no notification received for booking ${bookingId}`));
+                }, 15000);
+            });
+            console.log(`  ✓ Step 2: Subscribed to notification stream for ${bookingId}`);
+
+            // Step 3: Publish the three reservation confirmation events via real EventBus.
+            //         Each handler saves its reservationId → marks its step → checks JOIN POINT.
+            //         The last one to arrive fires aggregateResults() + notifyBookingConfirmed().
+            const flightReservationId = 'fl-' + randomUUID();
+            const hotelReservationId = 'ht-' + randomUUID();
+            const carReservationId = 'cr-' + randomUUID();
+            const now = new Date();
+
+            eventBus2.publish(
+                new TravelBookingFlightReservationEvent(
+                    bookingId,
+                    mockTravelBookingDto.userId,
+                    flightReservationId,
+                    1500,
+                    now,
+                ),
+            );
+            eventBus2.publish(
+                new TravelBookingHotelReservationEvent(
+                    bookingId,
+                    mockTravelBookingDto.userId,
+                    hotelReservationId,
+                    1800,
+                    now,
+                ),
+            );
+            eventBus2.publish(
+                new TravelBookingCarRentalReservationEvent(
+                    bookingId,
+                    mockTravelBookingDto.userId,
+                    carReservationId,
+                    200,
+                    now,
+                ),
+            );
+            console.log(`  ✓ Step 3: Published flight / hotel / car reservation events`);
+
+            // Step 4: Wait for the notification — pushed by the handler that completes the JOIN POINT
+            const notification = await confirmationPromise;
+            expect(notification.status).toBe('confirmed');
+            expect(notification.bookingId).toBe(bookingId);
+            console.log(`  ✓ Step 4: Notification received — status: ${notification.status}`);
+
+            // Step 5: Verify MongoDB state was updated to CONFIRMED by aggregateResults()
+            const confirmedState = await sagaStateModel2.findOne({ bookingId });
+            expect(confirmedState!.status).toBe(SagaStatus.CONFIRMED);
+            expect(confirmedState!.flightReservationId).toBe(flightReservationId);
+            expect(confirmedState!.hotelReservationId).toBe(hotelReservationId);
+            expect(confirmedState!.carRentalReservationId).toBe(carReservationId);
+            console.log(`  ✓ Step 5: MongoDB state → CONFIRMED with all three reservation IDs`);
+
+            // Step 6: Verify Redis coordination data was cleaned up by aggregateResults()
+            const cachedAfter = await redis2.get(`saga:inflight:${bookingId}`);
+            const stepsAfter = await redis2.exists(`saga:steps:${bookingId}`);
+            expect(cachedAfter).toBeNull();
+            expect(stepsAfter).toBe(0);
+            console.log(`  ✓ Step 6: Redis coordination data cleaned up`);
+
+            // Step 7: Verify result DTO on the notification
+            expect(notification.result!.flightReservationId).toBe(flightReservationId);
+            expect(notification.result!.hotelReservationId).toBe(hotelReservationId);
+            expect(notification.result!.carRentalReservationId).toBe(carReservationId);
+            console.log(`  ✓ Step 7: Notification result DTO contains all reservation IDs`);
+
+            console.log('✅ Event-driven saga lifecycle verified successfully!');
         }, 30000);
     });
 });

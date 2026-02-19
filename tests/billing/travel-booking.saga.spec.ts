@@ -1,15 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EventBus } from '@nestjs/cqrs';
-import { TravelBookingSaga } from '../../src/modules/billing/sagas/travel-booking.saga';
-import { FlightService } from '../../src/modules/billing/services/flight.service';
-import { HotelService } from '../../src/modules/billing/services/hotel.service';
-import { CarRentalService } from '../../src/modules/billing/services/car-rental.service';
-import { TravelBookingRequestDto } from '../../src/modules/billing/dto/travel-booking.dto';
-import { BILLING_BROKER_CLIENT } from '../../src/modules/billing/brokers/billing-broker.constants';
-import { BillingBrokerClient } from '../../src/modules/billing/brokers/billing-broker-client.interface';
-import { TravelBookingSagaStateRepository } from '../../src/modules/billing/sagas/repositories/travel-booking-saga-state.repository';
-import { SagaCoordinator } from '../../src/modules/billing/sagas/services/saga-coordinator.service';
-import { SagaStatus } from '../../src/modules/billing/sagas/schemas/travel-booking-saga-state.schema';
+import { TravelBookingSaga } from '@/modules/billing/sagas/travel-booking.saga';
+import { FlightService } from '@/modules/billing/services/flight.service';
+import { HotelService } from '@/modules/billing/services/hotel.service';
+import { CarRentalService } from '@/modules/billing/services/car-rental.service';
+import { TravelBookingRequestDto } from '@/modules/billing/dto/travel-booking.dto';
+import { BILLING_BROKER_CLIENT } from '@/modules/billing/brokers/billing-broker.constants';
+import { BillingBrokerClient } from '@/modules/billing/brokers/billing-broker-client.interface';
+import { TravelBookingSagaStateRepository } from '@/modules/billing/sagas/travel-booking-saga-state.repository';
+import { SagaCoordinator } from '@/modules/billing/sagas/saga-coordinator.service';
+import { SagaStatus } from '@/modules/billing/sagas/travel-booking-saga-state.schema';
 import { randomUUID } from 'crypto';
 
 describe('TravelBookingSaga', () => {

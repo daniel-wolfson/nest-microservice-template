@@ -1,8 +1,8 @@
 // Billing Module Main Exports
 export { BillingModule } from './billing.module';
-export { BillingController } from './controllers/billing.controller';
+export { BillingCommandController } from './controllers/billing-command.controller';
 export { WebhookController } from './webhook.controller';
-export { BillingMessageController } from './controllers/billing-message.controller';
+export { BillingEventController } from './controllers/billing-event.controller';
 
 // Services
 export { BillingService } from './services/billing.service';

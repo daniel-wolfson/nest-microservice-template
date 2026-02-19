@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { REDIS_CLIENT } from '@/modules/cache/cache.redis.module';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import Redis from 'ioredis';
 
 /**
@@ -18,28 +19,10 @@ import Redis from 'ioredis';
 @Injectable()
 export class SagaCoordinator {
     private readonly logger = new Logger(SagaCoordinator.name);
-    private readonly redis: Redis;
 
-    constructor() {
-        this.redis = new Redis({
-            host: process.env.REDIS_HOST || 'localhost',
-            port: parseInt(process.env.REDIS_PORT || '6379'),
-            password: process.env.REDIS_PASSWORD,
-            db: parseInt(process.env.REDIS_DB || '0'),
-            retryStrategy: times => {
-                const delay = Math.min(times * 50, 2000);
-                return delay;
-            },
-        });
-
-        this.redis.on('connect', () => {
-            this.logger.log('✅ Redis connected for saga coordination');
-        });
-
-        this.redis.on('error', error => {
-            this.logger.error('❌ Redis connection error:', error);
-        });
-    }
+    constructor(
+        @Inject(REDIS_CLIENT) private readonly redis: Redis, // ✅ DI injection
+    ) {}
 
     /**
      * 1. DISTRIBUTED LOCK - Prevent duplicate saga execution

@@ -5,9 +5,6 @@ import { CreateSubscriptionCommand } from '../commands/impl/create-subscription.
 import { CancelSubscriptionCommand } from '../commands/impl/cancel-subscription.command';
 import { DepositCommand } from '../commands/impl/deposit.command';
 import { WithdrawCommand } from '../commands/impl/withdraw.command';
-import { GetBalanceQuery } from '../queries/impl/get-balance.query';
-import { GetInvoicesQuery } from '../queries/impl/get-invoices.query';
-import { GetSubscriptionQuery } from '../queries/impl/get-subscription.query';
 import { CreateSubscriptionDto } from '../dto/create-subscription.dto';
 import { DepositDto } from '../dto/deposit.dto';
 import { WithdrawDto } from '../dto/withdraw.dto';
@@ -15,7 +12,7 @@ import { WithdrawDto } from '../dto/withdraw.dto';
 @ApiTags('billing')
 @Controller('billing')
 // @UseGuards(JwtAuthGuard) // Uncomment when auth is implemented
-export class BillingController {
+export class BillingCommandController {
     constructor(private readonly commandBus: CommandBus, private readonly queryBus: QueryBus) {}
 
     @Post('subscription/create')
@@ -34,14 +31,6 @@ export class BillingController {
         return this.commandBus.execute(new CancelSubscriptionCommand(subscriptionId));
     }
 
-    @Get(':userId/balance')
-    @ApiOperation({ summary: 'Get user balance' })
-    @ApiResponse({ status: 200, description: 'Balance retrieved successfully' })
-    @ApiBearerAuth()
-    async getBalance(@Param('userId') userId: string) {
-        return this.queryBus.execute(new GetBalanceQuery(userId));
-    }
-
     @Post('deposit')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({ summary: 'Deposit funds to user account' })
@@ -58,21 +47,5 @@ export class BillingController {
     @ApiBearerAuth()
     async withdraw(@Body() dto: WithdrawDto) {
         return this.commandBus.execute(new WithdrawCommand(dto.userId, dto.amount, dto.destination));
-    }
-
-    @Get('invoices/:userId')
-    @ApiOperation({ summary: 'Get user invoices' })
-    @ApiResponse({ status: 200, description: 'Invoices retrieved successfully' })
-    @ApiBearerAuth()
-    async getInvoices(@Param('userId') userId: string) {
-        return this.queryBus.execute(new GetInvoicesQuery(userId));
-    }
-
-    @Get('subscription/:userId')
-    @ApiOperation({ summary: 'Get user subscription' })
-    @ApiResponse({ status: 200, description: 'Subscription retrieved successfully' })
-    @ApiBearerAuth()
-    async getSubscription(@Param('userId') userId: string) {
-        return this.queryBus.execute(new GetSubscriptionQuery(userId));
     }
 }

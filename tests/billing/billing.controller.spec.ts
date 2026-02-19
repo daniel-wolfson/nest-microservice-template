@@ -1,13 +1,15 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
-import { BillingController } from '@/modules/billing/controllers/billing.controller';
+import { BillingCommandController } from '@/modules/billing/controllers/billing-command.controller';
+import { BillingQueryController } from '@/modules/billing/controllers/billing-query.controller';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { CreateSubscriptionDto } from '@/modules/billing/dto/create-subscription.dto';
 import { DepositDto } from '@/modules/billing/dto/deposit.dto';
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
 
 describe('BillingController (Integration)', () => {
     let app: INestApplication;
-    let controller: BillingController;
+    let commandController: BillingCommandController;
+    let queryController: BillingQueryController;
     let commandBus: CommandBus;
     let queryBus: QueryBus;
 
@@ -21,7 +23,7 @@ describe('BillingController (Integration)', () => {
 
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
-            controllers: [BillingController],
+            controllers: [BillingCommandController, BillingQueryController],
             providers: [
                 {
                     provide: CommandBus,
@@ -37,7 +39,8 @@ describe('BillingController (Integration)', () => {
         app = module.createNestApplication();
         await app.init();
 
-        controller = module.get<BillingController>(BillingController);
+        commandController = module.get<BillingCommandController>(BillingCommandController);
+        queryController = module.get<BillingQueryController>(BillingQueryController);
         commandBus = module.get<CommandBus>(CommandBus);
         queryBus = module.get<QueryBus>(QueryBus);
     });
@@ -48,7 +51,8 @@ describe('BillingController (Integration)', () => {
     });
 
     it('should be defined', () => {
-        expect(controller).toBeDefined();
+        expect(commandController).toBeDefined();
+        expect(queryController).toBeDefined();
     });
 
     describe('createSubscription', () => {
@@ -68,7 +72,7 @@ describe('BillingController (Integration)', () => {
 
             mockCommandBus.execute.mockResolvedValue(mockResult);
 
-            const result = await controller.createSubscription(dto);
+            const result = await commandController.createSubscription(dto);
 
             expect(result).toEqual(mockResult);
             expect(mockCommandBus.execute).toHaveBeenCalled();
@@ -85,7 +89,7 @@ describe('BillingController (Integration)', () => {
 
             mockQueryBus.execute.mockResolvedValue(mockBalance);
 
-            const result = await controller.getBalance('user-1');
+            const result = await queryController.getBalance('user-1');
 
             expect(result).toEqual(mockBalance);
             expect(mockQueryBus.execute).toHaveBeenCalled();
@@ -109,7 +113,7 @@ describe('BillingController (Integration)', () => {
 
             mockCommandBus.execute.mockResolvedValue(mockTransaction);
 
-            const result = await controller.deposit(dto);
+            const result = await commandController.deposit(dto);
 
             expect(result).toEqual(mockTransaction);
             expect(mockCommandBus.execute).toHaveBeenCalled();
@@ -135,7 +139,7 @@ describe('BillingController (Integration)', () => {
 
             mockQueryBus.execute.mockResolvedValue(mockInvoices);
 
-            const result = await controller.getInvoices('user-1');
+            const result = await queryController.getInvoices('user-1');
 
             expect(result).toEqual(mockInvoices);
             expect(mockQueryBus.execute).toHaveBeenCalled();

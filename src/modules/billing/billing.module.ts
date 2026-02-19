@@ -1,31 +1,36 @@
-import { INestApplication, Module } from '@nestjs/common';
+import { BillingCommandController } from './controllers/billing-command.controller';
+import { BillingEventController } from './controllers/billing-event.controller';
+import { BillingQueryController } from './controllers/billing-query.controller';
+import { BILLING_BROKER_CLIENT } from './brokers/billing-broker.constants';
+import { BillingService } from './services/billing.service';
+import { BookingCommandController } from './controllers/booking-command.controller';
+import { BookingNotificationService } from './services/booking-notification.service';
+import { BookingSseController } from './controllers/booking-sse.controller';
+import { CarRentalService } from './services/car-rental.service';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 import { ClientProxy, ClientsModule, MicroserviceOptions, Transport } from '@nestjs/microservices';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { BillingController } from './controllers/billing.controller';
-import { BillingService } from './services/billing.service';
+import { ClientProxyBillingBrokerClient } from './brokers/client-proxy-billing-broker.client';
+import { CommandHandlers } from './commands/handlers';
+import { EventHandlers } from './events/handlers';
+import { FlightService } from './services/flight.service';
+import { InvoiceService } from './services/invoice.service';
+import { HotelService } from './services/hotel.service';
+import { HttpModule } from '@nestjs/axios';
+import { Module } from '@nestjs/common';
+import { messageBrokerClientOptionsFactory } from './services/message-broker-client.factory';
+import { QueryHandlers } from './queries/handlers';
+import { SagaModule } from './sagas/travel-booking-saga.module';
+import { PrismaModule } from '@/modules/prisma/prisma.module';
 import { StripeService } from './services/stripe.service';
 import { VirtualAccountService } from './services/virtual-account.service';
-import { InvoiceService } from './services/invoice.service';
 import { TransactionStateMachine } from './state-machines/transaction.state-machine';
-import { PrismaModule } from '@/modules/prisma/prisma.module';
-import { CommandHandlers } from './commands/handlers';
-import { QueryHandlers } from './queries/handlers';
-import { EventHandlers } from './events/handlers';
 import { WebhookController } from './webhook.controller';
-import { BillingMessageController } from './controllers/billing-message.controller';
-import { TravelBookingController } from './controllers/travel-booking.controller';
-import { FlightService } from './services/flight.service';
-import { HotelService } from './services/hotel.service';
-import { CarRentalService } from './services/car-rental.service';
-import { BILLING_BROKER_CLIENT } from './brokers/billing-broker.constants';
-import { ClientProxyBillingBrokerClient } from './brokers/client-proxy-billing-broker.client';
-import { messageBrokerClientOptionsFactory } from './services/message-broker-client.factory';
-import { SagaModule } from './sagas/travel-booking-saga.module';
 
 @Module({
     imports: [
         CqrsModule,
+        HttpModule,
         PrismaModule.forRoot({
             prismaServiceOptions: {},
         }),
@@ -40,15 +45,23 @@ import { SagaModule } from './sagas/travel-booking-saga.module';
             },
         ]),
     ],
-    controllers: [BillingController, WebhookController, BillingMessageController, TravelBookingController],
+    controllers: [
+        BillingCommandController,
+        BillingQueryController,
+        BillingEventController,
+        BookingCommandController,
+        BookingSseController,
+        WebhookController,
+    ],
     providers: [
         BillingService,
+        BookingNotificationService,
+        InvoiceService,
+        HotelService,
+        FlightService,
         StripeService,
         VirtualAccountService,
-        InvoiceService,
         TransactionStateMachine,
-        FlightService,
-        HotelService,
         CarRentalService,
         {
             provide: BILLING_BROKER_CLIENT,

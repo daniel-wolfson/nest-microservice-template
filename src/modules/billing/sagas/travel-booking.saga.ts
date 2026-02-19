@@ -11,9 +11,9 @@ import { CompensationFailedEvent } from '../events/impl/compensation-failed.even
 import { BILLING_BROKER_CLIENT } from '../brokers/billing-broker.constants';
 import { BillingBrokerClient } from '../brokers/billing-broker-client.interface';
 import { randomUUID, UUID } from 'crypto';
-import { TravelBookingSagaStateRepository } from './repositories/travel-booking-saga-state.repository';
-import { SagaCoordinator } from './services/saga-coordinator.service';
-import { SagaStatus } from './schemas/travel-booking-saga-state.schema';
+import { TravelBookingSagaStateRepository } from './travel-booking-saga-state.repository';
+import { SagaCoordinator } from './saga-coordinator.service';
+import { SagaStatus } from './travel-booking-saga-state.schema';
 
 /**
  * Travel Booking Saga Orchestrator - Hybrid MongoDB + Redis Architecture
@@ -76,7 +76,7 @@ export class TravelBookingSaga {
         };
 
         try {
-            // REDIS STEP 1: Acquire distributed lock (prevent duplicate saga execution)
+            // redis-step 1: Acquire distributed lock (prevent duplicate saga execution)
             lockAcquired = await this.sagaCoordinator.acquireSagaLock(bookingId, 300);
             if (!lockAcquired) {
                 const errorMsg = `Saga already in progress for booking: ${bookingId}`;
@@ -85,7 +85,7 @@ export class TravelBookingSaga {
                 bookingExecutionResult.errorMessage = errorMsg;
                 return bookingExecutionResult;
             }
-            // REDIS STEP 2: Check rate limit (prevent spam bookings)
+            // redis-step 2: Check rate limit (prevent spam bookings)
             const canProceed = await this.sagaCoordinator.checkRateLimit(request.userId, 5);
             if (!canProceed) {
                 throw new Error(`Rate limit exceeded for user: ${request.userId}`);
@@ -104,7 +104,7 @@ export class TravelBookingSaga {
             });
             this.logger.log(`✅ Saga state saved to MongoDB: ${bookingId}`);
 
-            // REDIS STEP 3: Cache in-flight state for fast reads
+            // redis-step 3: Cache in-flight state for fast reads
             await this.sagaCoordinator.cacheInFlightState(
                 bookingId,
                 {
@@ -118,20 +118,22 @@ export class TravelBookingSaga {
                 3600,
             );
 
-            // REDIS STEP 4: Add to pending queue for monitoring
+            // redis-step 4: Add to pending queue for monitoring
             await this.sagaCoordinator.addToPendingQueue(bookingId);
 
-            // Travel-booking-saga-step 1: publish hotel reservation request
-            await this.billingBrokerClient.emit('reservation.hotel.requested', this.reserveHotel(request));
+            // travel-booking-saga-step 1: publish hotel reservation request
+            await this.billingBrokerClient.emit('reservation.hotel.requested', 
+                this.reserveHotel(request));
             this.logger.log(`✅ reservation.hotel.requested event published: ${reservationId}`);
             await this.sagaCoordinator.incrementStepCounter(bookingId, 'hotel_requested');
 
-            // Travel-booking-saga-step 2: publish flight reservation request
-            await this.billingBrokerClient.emit('reservation.flight.requested', this.reserveFlight(request));
+            // travel-booking-saga-step 2: publish flight reservation request
+            await this.billingBrokerClient.emit('reservation.flight.requested', 
+                this.reserveFlight(request));
             this.logger.log(`✅ reservation.flight.requested event published: ${reservationId}`);
             await this.sagaCoordinator.incrementStepCounter(bookingId, 'flight_requested');
 
-            // Travel-booking-saga-step 3: publish car rental reservation request
+            // travel-booking-saga-step 3: publish car rental reservation request
             await this.billingBrokerClient.emit('reservation.carRental.requested', this.reserveCar(request));
             this.logger.log(`✅ reservation.carRental.requested event published: ${reservationId}`);
             await this.sagaCoordinator.incrementStepCounter(bookingId, 'car_requested');
