@@ -1,12 +1,8 @@
-import { IsString, IsNotEmpty, IsDateString, IsNumber, Min } from 'class-validator';
+import { IsString, IsNotEmpty, IsDateString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { BaseReservationDto } from './base-reservation.dto';
 
-export class FlightReservationDto {
-    @ApiProperty({ description: 'User ID' })
-    @IsString()
-    @IsNotEmpty()
-    userId: string;
-
+export class FlightReservationDto extends BaseReservationDto {
     @ApiProperty({ description: 'Departure airport / city code' })
     @IsString()
     @IsNotEmpty()
@@ -26,16 +22,4 @@ export class FlightReservationDto {
     @IsDateString()
     @IsNotEmpty()
     returnDate: string;
-
-    @ApiProperty({ description: 'Reservation amount' })
-    @IsNumber()
-    @Min(0)
-    amount: number;
-}
-
-export interface FlightReservationResult {
-    reservationId: string;
-    confirmationCode: string;
-    status: 'confirmed' | 'pending';
-    amount: number;
 }

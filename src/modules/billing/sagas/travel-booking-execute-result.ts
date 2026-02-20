@@ -4,5 +4,5 @@ type BookingExecutionResult = {
     bookingId;
     travelBookingRequest: any;
     timestamp: number;
-    errorMessage: string | null;
+    message: string | null;
 };

@@ -38,5 +38,7 @@
         "WEAKPASSWORD",
         "xpack"
     ],
-    "commentTranslate.hover.enabled": false
+    "commentTranslate.hover.enabled": true,
+    "commentTranslate.browse.mode": "inplace",
+    "commentTranslate.source": "Copilot"
 }

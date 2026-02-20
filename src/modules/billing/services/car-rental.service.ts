@@ -1,5 +1,13 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { CarRentalReservationDto, CarRentalReservationResult } from '../dto/car-rental-reservation.dto';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
+import { CarRentalReservationDto } from '../dto/car-rental-reservation.dto';
+import { IReservationConfirmResult } from './reservation-confirm-result.interface';
+import { TravelBookingSagaStateRepository } from '../sagas/travel-booking-saga-state.repository';
+import { SagaCoordinator } from '../sagas/saga-coordinator.service';
+import { TravelBookingSaga } from '../sagas/travel-booking.saga';
+import { BookingNotificationService } from './booking-notification.service';
+import { ApiHelper } from '@/modules/helpers/helper.service';
+import { IReservationService } from './reservation-service.inteface';
+const ALL_CONFIRMATION_STEPS = ['flight_confirmed', 'hotel_confirmed', 'car_confirmed'];
 
 /**
  * Car Rental Service
@@ -7,31 +15,33 @@ import { CarRentalReservationDto, CarRentalReservationResult } from '../dto/car-
  * This service has a higher failure rate to demonstrate compensation
  */
 @Injectable()
-export class CarRentalService {
+export class CarRentalService implements IReservationService {
     private readonly logger = new Logger(CarRentalService.name);
-    private readonly reservations = new Map<string, CarRentalReservationResult>();
+    private readonly reservations = new Map<string, IReservationConfirmResult>();
+
+    constructor(
+        private readonly sagaStateRepository: TravelBookingSagaStateRepository,
+        private readonly sagaCoordinator: SagaCoordinator,
+        @Inject(forwardRef(() => TravelBookingSaga))
+        private readonly saga: TravelBookingSaga,
+        private readonly notificationService: BookingNotificationService,
+    ) {}
 
     /**
      * Reserve a car
      * Simulates external API call to car rental booking system
      * Higher failure rate to trigger compensation flow
      */
-    async reserveCar(dto: CarRentalReservationDto): Promise<CarRentalReservationResult> {
+    async makeReservation(dto: CarRentalReservationDto): Promise<IReservationConfirmResult> {
         this.logger.log(`Reserving car at ${dto.pickupLocation} for user ${dto.userId}`);
 
-        // Simulate API delay
-        await this.simulateDelay(1500);
+        // Simulate API delay AND Simulate 30% failure rate for testing compensation
+        await ApiHelper.simulateDelayOrRandomError(1500, 0.3);
 
-        // Simulate 30% failure rate for testing compensation
-        if (Math.random() < 0.3) {
-            this.logger.error('Car rental reservation failed - no available cars');
-            //throw new Error('No available cars for the selected location and dates');
-        }
+        const reservationId = ApiHelper.generateId('CAR');
+        const confirmationCode = ApiHelper.generateConfirmationCode();
 
-        const reservationId = this.generateId('CAR');
-        const confirmationCode = this.generateConfirmationCode();
-
-        const result: CarRentalReservationResult = {
+        const result: IReservationConfirmResult = {
             reservationId,
             confirmationCode,
             status: 'confirmed',
@@ -46,14 +56,55 @@ export class CarRentalService {
     }
 
     /**
+     * Confirm a car rental reservation received from the broker.
+     *
+     * Persists the reservationId, marks 'car_confirmed', then checks the
+     * JOIN POINT. If all three confirmations have arrived, finalises the saga
+     * and notifies the client via SSE / Webhook.
+     */
+    async confirmReservation(bookingId: string, reservationId: string): Promise<void> {
+        try {
+            this.logger.log(`🚗 Confirming car rental reservation ${reservationId} for booking ${bookingId}`);
+
+            const updatedState = await this.sagaStateRepository.saveConfirmedReservation(
+                bookingId,
+                'car',
+                reservationId,
+                'car_confirmed',
+            );
+            await this.sagaCoordinator.incrementStepCounter(bookingId, 'car_confirmed');
+
+            const completedSteps: string[] = updatedState?.completedSteps ?? [];
+            const allConfirmed = ALL_CONFIRMATION_STEPS.every(step => completedSteps.includes(step));
+
+            if (!allConfirmed) {
+                const missing = ALL_CONFIRMATION_STEPS.filter(step => !completedSteps.includes(step));
+                this.logger.log(`⏳ Waiting for confirmations: [${missing.join(', ')}] — bookingId: ${bookingId}`);
+                return;
+            }
+
+            this.logger.log(`🎯 All confirmations received — triggering aggregation for bookingId: ${bookingId}`);
+            const aggregateResult = await this.saga.aggregateResults(bookingId);
+            this.logger.log(`✅ Saga aggregated — bookingId: ${bookingId}, status: ${aggregateResult.status}`);
+            await this.notificationService.notifyBookingConfirmed(bookingId, aggregateResult);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            this.logger.error(
+                `❌ Failed to handle TravelBookingCarRentalReservationEvent for booking ${bookingId}: ${errorMessage}`,
+            );
+            await this.notificationService.notifyBookingFailed(bookingId, errorMessage);
+        }
+    }
+
+    /**
      * Cancel a car rental reservation (compensation)
      * This is called when the saga needs to rollback
      */
-    async cancelCar(reservationId: string): Promise<void> {
+    async cancelReservation(reservationId: string): Promise<void> {
         this.logger.warn(`Compensating: Canceling car rental reservation ${reservationId}`);
 
-        // Simulate API delay
-        await this.simulateDelay(500);
+        // Simulate API delay for Non prod
+        await ApiHelper.simulateDelayOrRandomError();
 
         const reservation = this.reservations.get(reservationId);
         if (!reservation) {
@@ -71,19 +122,7 @@ export class CarRentalService {
     /**
      * Get reservation details
      */
-    async getReservation(reservationId: string): Promise<CarRentalReservationResult | null> {
+    async getReservation(reservationId: string): Promise<IReservationConfirmResult | null> {
         return this.reservations.get(reservationId) || null;
-    }
-
-    private generateId(prefix: string): string {
-        return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    }
-
-    private generateConfirmationCode(): string {
-        return Math.random().toString(36).substring(2, 6).toUpperCase();
-    }
-
-    private async simulateDelay(ms: number): Promise<void> {
-        return new Promise(resolve => setTimeout(resolve, ms));
     }
 }

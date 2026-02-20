@@ -1,6 +1,6 @@
 import { Controller, Post, Body, Headers, HttpCode, HttpStatus, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { StripeService } from './services/stripe.service';
+import { StripeService } from '../services/stripe.service';
 
 @ApiTags('webhooks')
 @Controller('billing/webhook')

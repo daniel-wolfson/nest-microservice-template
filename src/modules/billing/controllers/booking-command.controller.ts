@@ -3,7 +3,7 @@ import { CommandBus } from '@nestjs/cqrs';
 import { ApiTags, ApiOperation, ApiParam, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { IsUrl } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { TravelBookingRequestDto, TravelBookingResponseDto } from '../dto/travel-booking.dto';
+import { BookingData, TravelBookingResponseDto } from '../dto/booking-data.dto';
 import { BookTravelCommand } from '../commands/impl/book-travel.command';
 import { BookingNotificationService } from '../services/booking-notification.service';
 
@@ -58,7 +58,7 @@ export class BookingCommandController {
         status: 500,
         description: 'Internal server error',
     })
-    async bookTravel(@Body() dto: TravelBookingRequestDto): Promise<TravelBookingResponseDto> {
+    async bookTravel(@Body() dto: BookingData): Promise<TravelBookingResponseDto> {
         this.logger.log(`Received travel booking request for user: ${dto.userId}`);
 
         try {

@@ -9,5 +9,13 @@ export enum LoggerStrategy {
     ELASTICSEARCH = 'elasticsearch',
     ALL = 'all',
     SYSLOG = 'syslog',
+    /** Write to both console and file */
+    COMBINED = 'combined',
 }
 
+/** Maps a LoggerStrategy to a human-readable label. */
+// export const LOGGER_STRATEGY_LABEL: Record<LoggerStrategy, string> = {
+//     [LoggerStrategy.CONSOLE]: 'Console',
+//     [LoggerStrategy.FILE]: 'File',
+//     [LoggerStrategy.COMBINED]: 'Console + File',
+// };

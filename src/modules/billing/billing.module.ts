@@ -17,6 +17,7 @@ import { FlightService } from './services/flight.service';
 import { InvoiceService } from './services/invoice.service';
 import { HotelService } from './services/hotel.service';
 import { HttpModule } from '@nestjs/axios';
+import { HelperModule } from '@/modules/helpers';
 import { Module } from '@nestjs/common';
 import { messageBrokerClientOptionsFactory } from './services/message-broker-client.factory';
 import { QueryHandlers } from './queries/handlers';
@@ -25,12 +26,13 @@ import { PrismaModule } from '@/modules/prisma/prisma.module';
 import { StripeService } from './services/stripe.service';
 import { VirtualAccountService } from './services/virtual-account.service';
 import { TransactionStateMachine } from './state-machines/transaction.state-machine';
-import { WebhookController } from './webhook.controller';
+import { WebhookController } from './controllers/webhook.controller';
 
 @Module({
     imports: [
         CqrsModule,
         HttpModule,
+        HelperModule,
         PrismaModule.forRoot({
             prismaServiceOptions: {},
         }),

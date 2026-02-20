@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import * as winston from 'winston';
 import { LoggerStrategy } from './logger-strategy.enum';
 import { getLoggerStrategy } from './logger.strategy';
@@ -12,6 +12,16 @@ const ALLOWED_LOG_LEVELS = ['log', 'error', 'warn', 'debug', 'verbose', 'fatal']
 
 // Derive the type from the array
 type LevelType = typeof ALLOWED_LOG_LEVELS[number];
+
+/**
+ * Injection token used to retrieve a context-scoped Logger from the DI container.
+ *
+ * Usage:
+ * ```ts
+ * constructor(@Inject(LOGGER) private readonly logger: Logger) {}
+ * ```
+ */
+export const LOGGER = 'LOGGER';
 
 @Injectable()
 export class LoggerFactory {
@@ -144,3 +154,13 @@ export class LoggerFactory {
         return getLoggerStrategy(process.env.LOG_STRATEGY);
     }
 }
+
+/**
+ * Creates a NestJS Logger pre-configured with the given context string.
+ *
+ * Usage in a dynamic provider:
+ * ```ts
+ * { provide: LOGGER, useFactory: loggerFactory('WebhookController') }
+ * ```
+ */
+export const loggerFactory = (context: string) => () => new Logger(context);

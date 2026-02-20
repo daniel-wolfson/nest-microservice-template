@@ -1,35 +1,46 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { FlightReservationDto, FlightReservationResult } from '../dto/flight-reservation.dto';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
+import { FlightReservationDto } from '../dto/flight-reservation.dto';
+import { IFlightReservationResult } from '../dto/flight-reservation-result.interface';
+import { TravelBookingSagaStateRepository } from '../sagas/travel-booking-saga-state.repository';
+import { SagaCoordinator } from '../sagas/saga-coordinator.service';
+import { TravelBookingSaga } from '../sagas/travel-booking.saga';
+import { BookingNotificationService } from './booking-notification.service';
+import { ApiHelper } from '@/modules/helpers/helper.service';
+import { IReservationService } from './reservation-service.inteface';
+
+const ALL_CONFIRMATION_STEPS = ['flight_confirmed', 'hotel_confirmed', 'car_confirmed'];
 
 /**
  * Flight Service
  * Simulates flight reservation system with compensation support
  */
 @Injectable()
-export class FlightService {
+export class FlightService implements IReservationService {
     private readonly logger = new Logger(FlightService.name);
-    private readonly reservations = new Map<string, FlightReservationResult>();
+    private readonly reservations = new Map<string, IFlightReservationResult>();
+
+    constructor(
+        private readonly sagaStateRepository: TravelBookingSagaStateRepository,
+        private readonly sagaCoordinator: SagaCoordinator,
+        @Inject(forwardRef(() => TravelBookingSaga))
+        private readonly saga: TravelBookingSaga,
+        private readonly notificationService: BookingNotificationService,
+    ) {}
 
     /**
      * Reserve a flight
      * Simulates external API call to flight booking system
      */
-    async reserveFlight(dto: FlightReservationDto): Promise<FlightReservationResult> {
+    async makeReservation(dto: FlightReservationDto): Promise<IFlightReservationResult> {
         this.logger.log(`Reserving flight from ${dto.origin} to ${dto.destination} for user ${dto.userId}`);
 
-        // Simulate API delay
-        await this.simulateDelay(1000);
+        // Simulate API delay AND Simulate 10% failure rate for testing
+        await ApiHelper.simulateDelayOrRandomError(1000, 0.1);
 
-        // Simulate 10% failure rate for testing
-        if (Math.random() < 0.1) {
-            this.logger.error('Flight reservation failed - no available flights');
-            throw new Error('No available flights for the selected route');
-        }
+        const reservationId = ApiHelper.generateId('FLT');
+        const confirmationCode = ApiHelper.generateConfirmationCode();
 
-        const reservationId = this.generateId('FLT');
-        const confirmationCode = this.generateConfirmationCode();
-
-        const result: FlightReservationResult = {
+        const result: IFlightReservationResult = {
             reservationId,
             confirmationCode,
             status: 'confirmed',
@@ -44,14 +55,55 @@ export class FlightService {
     }
 
     /**
+     * Confirm a flight reservation received from the broker.
+     *
+     * Persists the reservationId, marks 'flight_confirmed', then checks the
+     * JOIN POINT. If all three confirmations have arrived, finalises the saga
+     * and notifies the client via SSE / Webhook.
+     */
+    async confirmReservation(bookingId: string, reservationId: string): Promise<void> {
+        try {
+            this.logger.log(`✈️ Confirming flight reservation ${reservationId} for booking ${bookingId}`);
+
+            const updatedState = await this.sagaStateRepository.saveConfirmedReservation(
+                bookingId,
+                'flight',
+                reservationId,
+                'flight_confirmed',
+            );
+            await this.sagaCoordinator.incrementStepCounter(bookingId, 'flight_confirmed');
+
+            const completedSteps: string[] = updatedState?.completedSteps ?? [];
+            const allConfirmed = ALL_CONFIRMATION_STEPS.every(step => completedSteps.includes(step));
+
+            if (!allConfirmed) {
+                const missing = ALL_CONFIRMATION_STEPS.filter(step => !completedSteps.includes(step));
+                this.logger.log(`⏳ Waiting for confirmations: [${missing.join(', ')}] — bookingId: ${bookingId}`);
+                return;
+            }
+
+            this.logger.log(`🎯 All confirmations received — triggering aggregation for bookingId: ${bookingId}`);
+            const aggregateResult = await this.saga.aggregateResults(bookingId);
+            this.logger.log(`✅ Saga aggregated — bookingId: ${bookingId}, status: ${aggregateResult.status}`);
+            await this.notificationService.notifyBookingConfirmed(bookingId, aggregateResult);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            this.logger.error(
+                `❌ Failed to handle TravelBookingFlightReservationEvent for booking ${bookingId}: ${errorMessage}`,
+            );
+            await this.notificationService.notifyBookingFailed(bookingId, errorMessage);
+        }
+    }
+
+    /**
      * Cancel a flight reservation (compensation)
      * This is called when the saga needs to rollback
      */
-    async cancelFlight(reservationId: string): Promise<void> {
+    async cancelReservation(reservationId: string): Promise<void> {
         this.logger.warn(`Compensating: Canceling flight reservation ${reservationId}`);
 
         // Simulate API delay
-        await this.simulateDelay(500);
+        await ApiHelper.simulateDelayOrRandomError(500);
 
         const reservation = this.reservations.get(reservationId);
         if (!reservation) {
@@ -69,19 +121,7 @@ export class FlightService {
     /**
      * Get reservation details
      */
-    async getReservation(reservationId: string): Promise<FlightReservationResult | null> {
+    async getReservation(reservationId: string): Promise<IFlightReservationResult | null> {
         return this.reservations.get(reservationId) || null;
-    }
-
-    private generateId(prefix: string): string {
-        return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    }
-
-    private generateConfirmationCode(): string {
-        return Math.random().toString(36).substr(2, 6).toUpperCase();
-    }
-
-    private async simulateDelay(ms: number): Promise<void> {
-        return new Promise(resolve => setTimeout(resolve, ms));
     }
 }

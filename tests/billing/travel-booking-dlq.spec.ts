@@ -4,7 +4,7 @@ import { TravelBookingSaga } from '@/modules/billing/sagas/travel-booking.saga';
 import { FlightService } from '@/modules/billing/services/flight.service';
 import { HotelService } from '@/modules/billing/services/hotel.service';
 import { CarRentalService } from '@/modules/billing/services/car-rental.service';
-import { TravelBookingRequestDto } from '@/modules/billing/dto/travel-booking.dto';
+import { BookingData } from '@/modules/billing/dto/booking-data.dto';
 import { CompensationFailedEvent } from '@/modules/billing/events/impl/compensation-failed.event';
 import { TravelBookingSagaStateRepository } from '@/modules/billing/sagas/travel-booking-saga-state.repository';
 import { SagaCoordinator } from '@/modules/billing/sagas/saga-coordinator.service';
@@ -82,7 +82,7 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
         jest.clearAllMocks();
     });
 
-    const createMockDto = (): TravelBookingRequestDto => ({
+    const createMockDto = (): BookingData => ({
         reservationId: 'mock-reservation-' + Date.now(),
         userId: 'user-123',
         flightOrigin: 'JFK',
@@ -102,14 +102,14 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
     describe('Compensation Failure Scenarios', () => {
         it('should publish CompensationFailedEvent to Dead Letter Queue when flight cancellation fails', async () => {
             // Mock successful reservations
-            jest.spyOn(flightService, 'reserveFlight').mockResolvedValue({
+            jest.spyOn(flightService, 'makeReservation').mockResolvedValue({
                 reservationId: 'FLT-123',
                 confirmationCode: 'ABC123',
                 status: 'confirmed',
                 amount: 1000,
             });
 
-            jest.spyOn(hotelService, 'reserveHotel').mockResolvedValue({
+            jest.spyOn(hotelService, 'makeReservation').mockResolvedValue({
                 reservationId: 'HTL-456',
                 hotelId: 'hilton-downtown-la',
                 checkInDate: '2026-03-15',
@@ -121,14 +121,14 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
             });
 
             // Mock car rental failure
-            jest.spyOn(carRentalService, 'reserveCar').mockRejectedValue(new Error('No available cars'));
+            jest.spyOn(carRentalService, 'makeReservation').mockRejectedValue(new Error('No available cars'));
 
             // Mock successful hotel cancellation
-            jest.spyOn(hotelService, 'cancelHotel').mockResolvedValue();
+            jest.spyOn(hotelService, 'cancelReservation').mockResolvedValue();
 
             // Mock FAILED flight cancellation
             const compensationError = new Error('Flight cancellation API unavailable');
-            jest.spyOn(flightService, 'cancelFlight').mockRejectedValue(compensationError);
+            jest.spyOn(flightService, 'cancelReservation').mockRejectedValue(compensationError);
 
             const dto = createMockDto();
             const result = await saga.execute(dto);
@@ -154,14 +154,14 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
 
         it('should publish CompensationFailedEvent when hotel cancellation fails', async () => {
             // Mock successful reservations
-            jest.spyOn(flightService, 'reserveFlight').mockResolvedValue({
+            jest.spyOn(flightService, 'makeReservation').mockResolvedValue({
                 reservationId: 'FLT-123',
                 confirmationCode: 'ABC123',
                 status: 'confirmed',
                 amount: 1000,
             });
 
-            jest.spyOn(hotelService, 'reserveHotel').mockResolvedValue({
+            jest.spyOn(hotelService, 'makeReservation').mockResolvedValue({
                 reservationId: 'HTL-456',
                 hotelId: 'hilton-downtown-la',
                 checkInDate: '2026-03-15',
@@ -171,14 +171,14 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
                 amount: 875,
                 timestamp: new Date().toISOString(),
             });
-            jest.spyOn(carRentalService, 'reserveCar').mockRejectedValue(new Error('No available cars'));
+            jest.spyOn(carRentalService, 'makeReservation').mockRejectedValue(new Error('No available cars'));
 
             // Mock FAILED hotel cancellation
             const hotelError = new Error('Hotel cancellation system down');
-            jest.spyOn(hotelService, 'cancelHotel').mockRejectedValue(hotelError);
+            jest.spyOn(hotelService, 'cancelReservation').mockRejectedValue(hotelError);
 
             // Mock successful flight cancellation
-            jest.spyOn(flightService, 'cancelFlight').mockResolvedValue();
+            jest.spyOn(flightService, 'cancelReservation').mockResolvedValue();
 
             const dto = createMockDto();
             await saga.execute(dto);
@@ -195,14 +195,14 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
 
         it('should publish multiple CompensationFailedEvents when multiple compensations fail', async () => {
             // Mock successful reservations
-            jest.spyOn(flightService, 'reserveFlight').mockResolvedValue({
+            jest.spyOn(flightService, 'makeReservation').mockResolvedValue({
                 reservationId: 'FLT-123',
                 confirmationCode: 'ABC123',
                 status: 'confirmed',
                 amount: 1000,
             });
 
-            jest.spyOn(hotelService, 'reserveHotel').mockResolvedValue({
+            jest.spyOn(hotelService, 'makeReservation').mockResolvedValue({
                 reservationId: 'HTL-456',
                 hotelId: 'hilton-downtown-la',
                 checkInDate: '2026-03-15',
@@ -213,7 +213,7 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
                 timestamp: new Date().toISOString(),
             });
 
-            jest.spyOn(carRentalService, 'reserveCar').mockResolvedValue({
+            jest.spyOn(carRentalService, 'makeReservation').mockResolvedValue({
                 reservationId: 'CAR-789',
                 confirmationCode: 'GHI789',
                 status: 'confirmed',
@@ -224,9 +224,11 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
             jest.spyOn(saga as any, 'processPayment').mockRejectedValue(new Error('Payment processing failed'));
 
             // Mock ALL cancellations fail
-            jest.spyOn(carRentalService, 'cancelCar').mockRejectedValue(new Error('Car cancellation API timeout'));
-            jest.spyOn(hotelService, 'cancelHotel').mockRejectedValue(new Error('Hotel cancellation failed'));
-            jest.spyOn(flightService, 'cancelFlight').mockRejectedValue(new Error('Flight cancellation failed'));
+            jest.spyOn(carRentalService, 'cancelReservation').mockRejectedValue(
+                new Error('Car cancellation API timeout'),
+            );
+            jest.spyOn(hotelService, 'cancelReservation').mockRejectedValue(new Error('Hotel cancellation failed'));
+            jest.spyOn(flightService, 'cancelReservation').mockRejectedValue(new Error('Flight cancellation failed'));
 
             const dto = createMockDto();
             await saga.execute(dto);
@@ -245,7 +247,7 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
         });
 
         it('should include error stack in CompensationFailedEvent', async () => {
-            jest.spyOn(flightService, 'reserveFlight').mockResolvedValue({
+            jest.spyOn(flightService, 'makeReservation').mockResolvedValue({
                 reservationId: 'FLT-123',
                 confirmationCode: 'ABC123',
                 status: 'confirmed',
@@ -253,11 +255,11 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
             });
 
             // Mock hotel failure
-            jest.spyOn(hotelService, 'reserveHotel').mockRejectedValue(new Error('Hotel unavailable'));
+            jest.spyOn(hotelService, 'makeReservation').mockRejectedValue(new Error('Hotel unavailable'));
 
             // Mock flight cancellation failure with proper Error object
             const errorWithStack = new Error('Database connection lost');
-            jest.spyOn(flightService, 'cancelFlight').mockRejectedValue(errorWithStack);
+            jest.spyOn(flightService, 'cancelReservation').mockRejectedValue(errorWithStack);
 
             const dto = createMockDto();
             await saga.execute(dto);
@@ -272,16 +274,16 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
         });
 
         it('should include booking ID in CompensationFailedEvent', async () => {
-            jest.spyOn(flightService, 'reserveFlight').mockResolvedValue({
+            jest.spyOn(flightService, 'makeReservation').mockResolvedValue({
                 reservationId: 'FLT-123',
                 confirmationCode: 'ABC123',
                 status: 'confirmed',
                 amount: 1000,
             });
 
-            jest.spyOn(hotelService, 'reserveHotel').mockRejectedValue(new Error('No rooms available'));
+            jest.spyOn(hotelService, 'makeReservation').mockRejectedValue(new Error('No rooms available'));
 
-            jest.spyOn(flightService, 'cancelFlight').mockRejectedValue(new Error('Cancellation failed'));
+            jest.spyOn(flightService, 'cancelReservation').mockRejectedValue(new Error('Cancellation failed'));
 
             const dto = createMockDto();
             const result = await saga.execute(dto);
@@ -296,14 +298,14 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
         });
 
         it('should continue compensating other services even when one compensation fails', async () => {
-            jest.spyOn(flightService, 'reserveFlight').mockResolvedValue({
+            jest.spyOn(flightService, 'makeReservation').mockResolvedValue({
                 reservationId: 'FLT-123',
                 confirmationCode: 'ABC123',
                 status: 'confirmed',
                 amount: 1000,
             });
 
-            jest.spyOn(hotelService, 'reserveHotel').mockResolvedValue({
+            jest.spyOn(hotelService, 'makeReservation').mockResolvedValue({
                 reservationId: 'HTL-456',
                 hotelId: 'hilton-downtown-la',
                 checkInDate: '2026-03-15',
@@ -313,13 +315,13 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
                 amount: 875,
                 timestamp: new Date().toISOString(),
             });
-            jest.spyOn(carRentalService, 'reserveCar').mockRejectedValue(new Error('No cars'));
+            jest.spyOn(carRentalService, 'makeReservation').mockRejectedValue(new Error('No cars'));
 
             // Hotel cancellation fails
-            jest.spyOn(hotelService, 'cancelHotel').mockRejectedValue(new Error('Hotel cancellation failed'));
+            jest.spyOn(hotelService, 'cancelReservation').mockRejectedValue(new Error('Hotel cancellation failed'));
 
             // Flight cancellation succeeds
-            const cancelFlightSpy = jest.spyOn(flightService, 'cancelFlight').mockResolvedValue();
+            const cancelFlightSpy = jest.spyOn(flightService, 'cancelReservation').mockResolvedValue();
 
             const dto = createMockDto();
             await saga.execute(dto);

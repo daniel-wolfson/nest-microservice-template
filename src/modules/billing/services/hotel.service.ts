@@ -1,35 +1,46 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { HotelReservationDto, HotelReservationResult } from '../dto/hotel-reservation.dto';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
+import { HotelReservationDto } from '../dto/hotel-reservation.dto';
+import { HotelReservationResult } from '../dto/hotel-reservation-result.dto';
+import { TravelBookingSagaStateRepository } from '../sagas/travel-booking-saga-state.repository';
+import { SagaCoordinator } from '../sagas/saga-coordinator.service';
+import { TravelBookingSaga } from '../sagas/travel-booking.saga';
+import { BookingNotificationService } from './booking-notification.service';
+import { ApiHelper } from '@/modules/helpers/helper.service';
+import { IReservationService } from './reservation-service.inteface';
+
+const ALL_CONFIRMATION_STEPS = ['flight_confirmed', 'hotel_confirmed', 'car_confirmed'];
 
 /**
  * Hotel Service
  * Simulates hotel reservation system with compensation support
  */
 @Injectable()
-export class HotelService {
+export class HotelService implements IReservationService {
     private readonly logger = new Logger(HotelService.name);
     private readonly reservations = new Map<string, HotelReservationResult>();
+
+    constructor(
+        private readonly sagaStateRepository: TravelBookingSagaStateRepository,
+        private readonly sagaCoordinator: SagaCoordinator,
+        @Inject(forwardRef(() => TravelBookingSaga))
+        private readonly saga: TravelBookingSaga,
+        private readonly notificationService: BookingNotificationService,
+    ) {}
 
     /**
      * Reserve a hotel room
      * Simulates external API call to hotel booking system
      */
-    async reserveHotel(dto: HotelReservationDto): Promise<HotelReservationResult> {
+    async makeReservation(dto: HotelReservationDto): Promise<HotelReservationResult> {
         this.logger.log(
             `Reserving hotel ${dto.hotelId} for user ${dto.userId} from ${dto.checkInDate} to ${dto.checkOutDate}`,
         );
 
-        // Simulate API delay
-        await this.simulateDelay(1200);
+        // Simulate API delay AND Simulate 10% failure rate for testing
+        await ApiHelper.simulateDelayOrRandomError(1200, 0.1);
 
-        // Simulate 10% failure rate for testing
-        if (Math.random() < 0.1) {
-            this.logger.error('Hotel reservation failed - no available rooms');
-            throw new Error('No available rooms for the selected dates');
-        }
-
-        const reservationId = this.generateId('HTL');
-        const confirmationCode = this.generateConfirmationCode();
+        const reservationId = ApiHelper.generateId('HTL');
+        const confirmationCode = ApiHelper.generateConfirmationCode();
 
         const result: HotelReservationResult = {
             reservationId,
@@ -50,14 +61,54 @@ export class HotelService {
     }
 
     /**
+     * Confirm a hotel reservation received from the broker.
+     *
+     * Persists the reservationId, marks 'hotel_confirmed', then checks the
+     * JOIN POINT. If all three confirmations have arrived, finalizes the saga
+     * and notifies the client via SSE / Webhook.
+     */
+    async confirmReservation(bookingId: string, reservationId: string): Promise<void> {
+        try {
+            this.logger.log(`🏨 Confirming hotel reservation ${reservationId} for booking ${bookingId}`);
+
+            const updatedState = await this.sagaStateRepository.saveConfirmedReservation(
+                bookingId,
+                'hotel',
+                reservationId,
+                'hotel_confirmed',
+            );
+            await this.sagaCoordinator.incrementStepCounter(bookingId, 'hotel_confirmed');
+
+            const completedSteps: string[] = updatedState?.completedSteps ?? [];
+            const allConfirmed = ALL_CONFIRMATION_STEPS.every(step => completedSteps.includes(step));
+
+            if (!allConfirmed) {
+                const missing = ALL_CONFIRMATION_STEPS.filter(step => !completedSteps.includes(step));
+                this.logger.log(`⏳ Waiting for confirmations: [${missing.join(', ')}] — bookingId: ${bookingId}`);
+                return;
+            }
+
+            this.logger.log(`🎯 All confirmations received — triggering aggregation for bookingId: ${bookingId}`);
+            const aggregateResult = await this.saga.aggregateResults(bookingId);
+            this.logger.log(`✅ Saga aggregated — bookingId: ${bookingId}, status: ${aggregateResult.status}`);
+            await this.notificationService.notifyBookingConfirmed(bookingId, aggregateResult);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            this.logger.error(
+                `❌ Failed to handle TravelBookingHotelReservationEvent for booking ${bookingId}: ${errorMessage}`,
+            );
+            await this.notificationService.notifyBookingFailed(bookingId, errorMessage);
+        }
+    }
+
+    /**
      * Cancel a hotel reservation (compensation)
      * This is called when the saga needs to rollback
      */
-    async cancelHotel(reservationId: string): Promise<void> {
+    async cancelReservation(reservationId: string): Promise<void> {
         this.logger.warn(`Compensating: Canceling hotel reservation ${reservationId}`);
 
-        // Simulate API delay
-        await this.simulateDelay(500);
+        await ApiHelper.simulateDelayOrRandomError(500);
 
         const reservation = this.reservations.get(reservationId);
         if (!reservation) {
@@ -77,17 +128,5 @@ export class HotelService {
      */
     async getReservation(reservationId: string): Promise<HotelReservationResult | null> {
         return this.reservations.get(reservationId) || null;
-    }
-
-    private generateId(prefix: string): string {
-        return `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    }
-
-    private generateConfirmationCode(): string {
-        return Math.random().toString(36).substring(2, 6).toUpperCase();
-    }
-
-    private async simulateDelay(ms: number): Promise<void> {
-        return new Promise(resolve => setTimeout(resolve, ms));
     }
 }

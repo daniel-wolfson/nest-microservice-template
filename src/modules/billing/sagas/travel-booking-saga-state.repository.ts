@@ -1,11 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import {
-    TravelBookingSagaState,
-    TravelBookingSagaStateDocument,
-    SagaStatus,
-} from './travel-booking-saga-state.schema';
+import { TravelBookingSagaState, TravelBookingSagaStateDocument, SagaStatus } from './travel-booking-saga-state.schema';
 
 @Injectable()
 export class TravelBookingSagaStateRepository {
@@ -37,6 +33,28 @@ export class TravelBookingSagaStateRepository {
      */
     async findByReservationId(reservationId: string): Promise<TravelBookingSagaStateDocument | null> {
         return await this.sagaStateModel.findOne({ reservationId }).exec();
+    }
+
+    async saveConfirmedReservation(
+        bookingId: string,
+        type: 'flight' | 'hotel' | 'car',
+        reservationId: string,
+        step: string,
+    ): Promise<TravelBookingSagaStateDocument | null> {
+        const field = `${type}ReservationId`;
+        this.logger.log(
+            `Saving confirmed ${type} reservation ${reservationId} (step: ${step}) for booking: ${bookingId}`,
+        );
+        return await this.sagaStateModel
+            .findOneAndUpdate(
+                { bookingId },
+                {
+                    $set: { [field]: reservationId, updatedAt: new Date() },
+                    $addToSet: { completedSteps: step },
+                },
+                { new: true },
+            )
+            .exec();
     }
 
     /**

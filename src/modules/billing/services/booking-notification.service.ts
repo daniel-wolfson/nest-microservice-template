@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { Subject, Observable } from 'rxjs';
 import { filter } from 'rxjs/operators';
-import { TravelBookingResponseDto } from '../dto/travel-booking.dto';
+import { TravelBookingResponseDto } from '../dto/booking-data.dto';
 
 export interface BookingNotification {
     bookingId: string;
