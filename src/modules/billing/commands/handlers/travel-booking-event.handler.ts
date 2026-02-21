@@ -2,12 +2,13 @@ import { Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { BookTravelCommand as TravelBookingCommand } from '../impl/book-travel.command';
 import { TravelBookingSaga } from '../../sagas/travel-booking.saga';
+import { TravelBookingExecutionResult } from '../../sagas/travel-booking-execute-result';
 
 @CommandHandler(TravelBookingCommand)
 export class TravelBookingHandler implements ICommandHandler<TravelBookingCommand> {
     private readonly logger = new Logger(TravelBookingHandler.name);
     constructor(private readonly travelBookingSaga: TravelBookingSaga) {}
-    async execute(command: TravelBookingCommand): Promise<BookingExecutionResult> {
+    async execute(command: TravelBookingCommand): Promise<TravelBookingExecutionResult> {
         this.logger.log('Executing TravelBookingCommand');
 
         try {

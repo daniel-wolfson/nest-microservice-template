@@ -3,7 +3,6 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { CqrsModule } from '@nestjs/cqrs';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TravelBookingSaga } from './travel-booking.saga';
-import { TravelBookingSagaState, TravelBookingSagaStateSchema } from './travel-booking-saga-state.schema';
 import { TravelBookingSagaStateRepository } from './travel-booking-saga-state.repository';
 import { SagaCoordinator } from './saga-coordinator.service';
 import { FlightService } from '../services/flight.service';
@@ -13,6 +12,7 @@ import { BILLING_BROKER_CLIENT } from '../brokers/billing-broker.constants';
 import { ClientProxyBillingBrokerClient } from '../brokers/client-proxy-billing-broker.client';
 import { ClientProxy, ClientsModule } from '@nestjs/microservices';
 import { messageBrokerClientOptionsFactory } from '../services/message-broker-client.factory';
+import { TravelBookingSagaState, TravelBookingSagaStateSchema } from './travel-booking-saga-state.schema';
 
 @Module({
     imports: [

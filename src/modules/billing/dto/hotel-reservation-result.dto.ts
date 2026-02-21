@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IReservationConfirmResult } from '../services/reservation-confirm-result.interface';
+import { SagaStatus } from '../sagas/saga-status.enum';
 
 export class HotelReservationResult implements IReservationConfirmResult {
     @ApiProperty({ description: 'Reservation ID' })
@@ -23,6 +24,6 @@ export class HotelReservationResult implements IReservationConfirmResult {
     @ApiProperty({ description: 'Confirmation code' })
     confirmationCode: string;
 
-    @ApiProperty({ description: 'Reservation status' })
-    status: 'confirmed' | 'pending';
+    @ApiProperty({ description: 'Reservation status', enum: SagaStatus })
+    status: SagaStatus.CONFIRMED | SagaStatus.PENDING;
 }

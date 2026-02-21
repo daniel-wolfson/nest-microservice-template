@@ -34,7 +34,7 @@ export class ExactlyOnceProducerStrategy<T = any> extends BaseProducerDeliverySt
             },
             // Enable idempotence to prevent duplicates
             idempotent: true,
-            // Limit in-flight requests for ordering with idempotence
+            // Limit in-active requests for ordering with idempotence
             maxInFlightRequests: 1,
             // Enable transactions for exactly-once semantics
             transactionTimeout: producerSettings.transactionTimeout || 30000,

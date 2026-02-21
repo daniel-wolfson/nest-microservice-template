@@ -1,7 +1,7 @@
 import { CommandHandler, ICommandHandler, EventBus } from '@nestjs/cqrs';
 import { WithdrawCommand } from '../impl/withdraw.command';
 import { BillingService } from '../../services/billing.service';
-import { TransactionState, TransactionStateMachine } from '../../state-machines/transaction.state-machine';
+import { TransactionState, TransactionStateMachine } from '../../sagas/transaction.state-machine';
 import { Logger, BadRequestException } from '@nestjs/common';
 import { WithdrawalCompletedEvent } from '../../events/impl/withdrawal-completed.event';
 

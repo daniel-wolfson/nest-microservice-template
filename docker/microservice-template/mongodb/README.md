@@ -87,7 +87,7 @@ Features:
 
 ## Data Schema
 
-### TravelBookingSagaState Collection
+### BookingSagaState Collection
 
 ```typescript
 {

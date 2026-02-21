@@ -1,0 +1,11 @@
+D:\Projects\Nest\microservice-template\tests\billing\travel-booking.saga.e2e.spec.ts
+D:\Projects\Nest\microservice-template\tests\billing\travel-booking.saga.spec.ts
+D:\Projects\Nest\microservice-template\tests\billing\travel-booking-dlq.spec.ts
+D:\Projects\Nest\microservice-template\tests\postgres.spec.ts
+D:\Projects\Nest\microservice-template\tests\billing\billing.service.spec.ts
+D:\Projects\Nest\microservice-template\tests\billing\transaction.state-machine.spec.ts
+D:\Projects\Nest\microservice-template\tests\billing\billing.controller.spec.ts
+D:\Projects\Nest\microservice-template\tests\billing\create-subscription.handler.spec.ts
+D:\Projects\Nest\microservice-template\tests\strategy-architecture.spec.ts
+D:\Projects\Nest\microservice-template\src\modules\authentication\authentication.controller.spec.ts
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

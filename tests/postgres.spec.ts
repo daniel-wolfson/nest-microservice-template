@@ -1,7 +1,7 @@
-import { PrismaClient, Language } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import * as bcrypt from 'bcrypt';
+import { PrismaClient } from '@prisma/client';
 
 // Using 'any' to bypass Prisma 7.x TypeScript type generation issues in tests
 // The generated types may not be recognized by Jest's ts-jest transformer

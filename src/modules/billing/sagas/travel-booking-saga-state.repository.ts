@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { TravelBookingSagaState, TravelBookingSagaStateDocument, SagaStatus } from './travel-booking-saga-state.schema';
-
+import { TravelBookingSagaState, TravelBookingSagaStateDocument } from './travel-booking-saga-state.schema';
+import { SagaStatus } from './saga-status.enum';
+import { TravelBookingSagaRedisState } from './travel-booking-saga-state.type';
 @Injectable()
 export class TravelBookingSagaStateRepository {
     private readonly logger = new Logger(TravelBookingSagaStateRepository.name);
@@ -21,33 +22,40 @@ export class TravelBookingSagaStateRepository {
         return await createdState.save();
     }
 
-    /**
-     * Find saga state by booking ID
-     */
-    async findByBookingId(bookingId: string): Promise<TravelBookingSagaStateDocument | null> {
-        return await this.sagaStateModel.findOne({ bookingId }).exec();
+    /** Find saga state by request ID */
+    async findByRequestId(requestId: string): Promise<TravelBookingSagaStateDocument | null> {
+        return await this.sagaStateModel.findOne({ requestId }).exec();
     }
 
-    /**
-     * Find saga state by reservation ID
-     */
-    async findByReservationId(reservationId: string): Promise<TravelBookingSagaStateDocument | null> {
-        return await this.sagaStateModel.findOne({ reservationId }).exec();
+    /** Find saga state by booking ID */
+    async findByBookingId(requestId: string): Promise<TravelBookingSagaStateDocument | null> {
+        return await this.sagaStateModel.findOne({ requestId: requestId }).exec();
+    }
+
+    /** Find saga state by reservation ID */
+    async findByReservationId(requestId: string): Promise<TravelBookingSagaStateDocument | null> {
+        return await this.sagaStateModel.findOne({ reservationId: requestId }).exec();
     }
 
     async saveConfirmedReservation(
-        bookingId: string,
         type: 'flight' | 'hotel' | 'car',
+        requestId: string,
         reservationId: string,
         step: string,
     ): Promise<TravelBookingSagaStateDocument | null> {
-        const field = `${type}ReservationId`;
+        // 'car' maps to carRentalReservationId (the full field name in the schema)
+        const fieldMap: Record<string, string> = {
+            flight: 'flightReservationId',
+            hotel: 'hotelReservationId',
+            car: 'carRentalReservationId',
+        };
+        const field = fieldMap[type] ?? `${type}ReservationId`;
         this.logger.log(
-            `Saving confirmed ${type} reservation ${reservationId} (step: ${step}) for booking: ${bookingId}`,
+            `Saving confirmed ${type} reservation ${reservationId} (step: ${step}) for booking request: ${requestId}`,
         );
         return await this.sagaStateModel
             .findOneAndUpdate(
-                { bookingId },
+                { requestId },
                 {
                     $set: { [field]: reservationId, updatedAt: new Date() },
                     $addToSet: { completedSteps: step },
@@ -57,79 +65,67 @@ export class TravelBookingSagaStateRepository {
             .exec();
     }
 
-    /**
-     * Update saga state
-     */
+    /** Update saga state */
     async updateState(
-        bookingId: string,
-        update: Partial<TravelBookingSagaState>,
+        requestId: string,
+        update: Partial<TravelBookingSagaRedisState>,
     ): Promise<TravelBookingSagaStateDocument | null> {
-        this.logger.log(`Updating saga state for booking: ${bookingId}`);
+        this.logger.log(`Updating saga state for booking: ${requestId}`);
         return await this.sagaStateModel
-            .findOneAndUpdate({ bookingId }, { $set: update, updatedAt: new Date() }, { new: true })
+            .findOneAndUpdate({ bookingId: requestId }, { $set: update, updatedAt: new Date() }, { new: true })
             .exec();
     }
 
-    /**
-     * Add completed step
-     */
-    async addCompletedStep(bookingId: string, step: string): Promise<TravelBookingSagaStateDocument | null> {
-        this.logger.log(`Adding completed step '${step}' for booking: ${bookingId}`);
+    /** Add completed step */
+    async addCompletedStep(requestId: string, step: string): Promise<TravelBookingSagaStateDocument | null> {
+        this.logger.log(`Adding completed step '${step}' for booking request: ${requestId}`);
         return await this.sagaStateModel
             .findOneAndUpdate(
-                { bookingId },
+                { requestId },
                 { $addToSet: { completedSteps: step }, updatedAt: new Date() },
                 { new: true },
             )
             .exec();
     }
 
-    /**
-     * Set reservation ID
-     */
+    /** Set reservation ID */
     async setReservationId(
-        bookingId: string,
         type: 'flight' | 'hotel' | 'car',
+        requestId: string,
         reservationId: string,
     ): Promise<TravelBookingSagaStateDocument | null> {
         const field = `${type}ReservationId`;
-        this.logger.log(`Setting ${field} to ${reservationId} for booking: ${bookingId}`);
+        this.logger.log(`Setting ${field} to ${reservationId} for booking request: ${requestId}`);
         return await this.sagaStateModel
-            .findOneAndUpdate({ bookingId }, { $set: { [field]: reservationId }, updatedAt: new Date() }, { new: true })
+            .findOneAndUpdate({ requestId }, { $set: { [field]: reservationId }, updatedAt: new Date() }, { new: true })
             .exec();
     }
 
-    /**
-     * Update status
-     */
-    async updateStatus(bookingId: string, status: SagaStatus): Promise<TravelBookingSagaStateDocument | null> {
-        this.logger.log(`Updating status to '${status}' for booking: ${bookingId}`);
+    /** Update status */
+    async updateStatus(requestId: string, status: SagaStatus): Promise<TravelBookingSagaStateDocument | null> {
+        this.logger.log(`Updating status to '${status}' for booking request: ${requestId}`);
         return await this.sagaStateModel
-            .findOneAndUpdate({ bookingId }, { $set: { status, updatedAt: new Date() } }, { new: true })
+            .findOneAndUpdate({ bookingId: requestId }, { $set: { status, updatedAt: new Date() } }, { new: true })
             .exec();
     }
 
-    /**
-     * Set error
-     */
+    /** Set error */
     async setError(
-        bookingId: string,
+        requestId: string,
         errorMessage: string,
         errorStack?: string,
     ): Promise<TravelBookingSagaStateDocument | null> {
-        this.logger.error(`Setting error for booking ${bookingId}: ${errorMessage}`);
+        this.logger.error(`Setting error for booking request ${requestId}: ${errorMessage}`);
         return await this.sagaStateModel
             .findOneAndUpdate(
-                { bookingId },
+                { requestId },
                 { $set: { errorMessage, errorStack, status: SagaStatus.FAILED, updatedAt: new Date() } },
                 { new: true },
             )
             .exec();
     }
 
-    /**
-     * Find all pending sagas (for recovery/monitoring)
-     */
+    /** Find all pending sagas (for recovery/monitoring) */
     async findPendingSagas(olderThanMinutes: number = 30): Promise<TravelBookingSagaStateDocument[]> {
         const cutoffDate = new Date(Date.now() - olderThanMinutes * 60 * 1000);
         return await this.sagaStateModel
@@ -140,9 +136,7 @@ export class TravelBookingSagaStateRepository {
             .exec();
     }
 
-    /**
-     * Get saga statistics by user
-     */
+    /** Get saga statistics by user */
     async getStatsByUser(userId: string): Promise<any> {
         return await this.sagaStateModel
             .aggregate([

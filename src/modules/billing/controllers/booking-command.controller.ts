@@ -5,7 +5,7 @@ import { IsUrl } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { BookingData, TravelBookingResponseDto } from '../dto/booking-data.dto';
 import { BookTravelCommand } from '../commands/impl/book-travel.command';
-import { BookingNotificationService } from '../services/booking-notification.service';
+import { TravelBookingNotificationService } from '../webhooks_sse/travel-booking-notification.service';
 
 export class RegisterWebhookDto {
     @ApiProperty({
@@ -23,7 +23,7 @@ export class BookingCommandController {
 
     constructor(
         private readonly commandBus: CommandBus,
-        private readonly notificationService: BookingNotificationService,
+        private readonly notificationService: TravelBookingNotificationService,
     ) {}
 
     @Post()

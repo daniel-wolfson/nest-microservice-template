@@ -1,5 +1,6 @@
 import { IsString, IsNotEmpty, IsDateString, IsNumber, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { SagaStatus } from '../sagas/saga-status.enum';
 
 export class BookingData {
     @ApiProperty({ description: 'User ID initiating the booking' })
@@ -9,7 +10,7 @@ export class BookingData {
 
     @ApiProperty({ description: 'Reservation ID' })
     @IsNotEmpty()
-    reservationId: string;
+    requestId: string;
 
     @ApiProperty({ description: 'Origin airport code' })
     @IsString()
@@ -72,7 +73,7 @@ export class TravelBookingResponseDto {
 
     @ApiProperty({ description: 'Travel booking request details' })
     @IsNotEmpty()
-    travelBookingRequest: BookingData;
+    originalRequest: BookingData;
 
     @ApiProperty({ description: 'Flight reservation ID' })
     flightReservationId?: string;
@@ -84,7 +85,7 @@ export class TravelBookingResponseDto {
     carRentalReservationId?: string;
 
     @ApiProperty({ description: 'Booking status' })
-    status: 'pending' | 'confirmed' | 'failed' | 'compensated';
+    status: SagaStatus; // 'PENDING' | 'CONFIRMED' | 'FAILED' | 'COMPENSATED';
 
     @ApiProperty({ description: 'Error message if failed' })
     errorMessage?: string;

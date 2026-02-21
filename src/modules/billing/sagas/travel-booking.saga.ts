@@ -16,7 +16,8 @@ import { BillingBrokerClient } from '../brokers/billing-broker-client.interface'
 import { randomUUID, UUID } from 'crypto';
 import { TravelBookingSagaStateRepository } from './travel-booking-saga-state.repository';
 import { SagaCoordinator } from './saga-coordinator.service';
-import { SagaStatus } from './travel-booking-saga-state.schema';
+import { SagaStatus } from './saga-status.enum';
+import { TravelBookingExecutionResult } from './travel-booking-execute-result';
 
 /**
  * Travel Booking Saga Orchestrator - Hybrid MongoDB + Redis Architecture
@@ -31,7 +32,7 @@ import { SagaStatus } from './travel-booking-saga-state.schema';
  * COORDINATION FEATURES:
  * - Distributed locks: Prevent duplicate saga execution
  * - Rate limiting: Prevent spam bookings (5 per minute per user)
- * - In-flight caching: Fast state access during saga execution
+ * - in-active caching: Fast state access during saga execution
  * - Pending queue: Monitor stuck sagas for recovery
  * - Step tracking: Real-time progress monitoring
  *
@@ -44,6 +45,28 @@ import { SagaStatus } from './travel-booking-saga-state.schema';
 export class TravelBookingSaga {
     private readonly logger = new Logger(TravelBookingSaga.name);
 
+    /** === SAGA COORDINATION (Redis) ===
+     * - Purpose: Lock key, prevents duplicate saga execution
+     * - Scope: ONE per saga execution
+     * - Used in: Redis locks, cache, pending queue
+     */
+    requestId: string;
+
+    /** === BUSINESS PACKAGE (MongoDB) ===
+     * - Purpose: Customer-facing confirmation number
+     * - Scope: ONE per successful saga (contains all 3 bookings)
+     * - Used in: Email confirmation, customer lookup
+     */
+    bookingId: string;
+
+    /** EXTERNAL SERVICE IDs (MongoDB) ===
+     * - Purpose: Individual booking IDs from external systems
+     * - Scope: THREE different IDs (one per service)
+     * - Used in: Cancellations, modifications, check-in
+     */
+    flightReservationId: string;
+    hotelReservationId: string;
+    carReservationId: string;
     constructor(
         private readonly flightService: FlightService,
         private readonly hotelService: HotelService,
@@ -58,63 +81,64 @@ export class TravelBookingSaga {
     /**
      * Execute the travel booking saga - Hybrid MongoDB + Redis approach
      *
-     * Redis: Distributed lock, rate limiting, in-flight cache, pending queue
+     * Redis: Distributed lock, rate limiting, in-active cache, pending queue
      * MongoDB: Persistent state for audit trail and recovery
      *
      * Returns a response with the booking status and details
      */
-    async execute(request: BookingRequestDto): Promise<BookingExecutionResult> {
+    async execute(request: BookingRequestDto): Promise<TravelBookingExecutionResult> {
         // saga-execute-step 0: Generate idempotency key for duplicate detection
-        const reservationId = request.reservationId || this.generateIdempotencyKey(request);
-        this.logger.log(`Processing travel booking with idempotency key: ${reservationId}`);
+        this.requestId = request.requestId || this.generateIdempotencyKey(request);
+        this.logger.log(`Processing travel booking with idempotency key: ${this.requestId}`);
         this.logger.log(`User: ${request.userId}, Total Amount: $${request.totalAmount}`);
 
         let lockAcquired = false;
-        let bookingId: string | null = null;
-        let bookingExecutionResult: BookingExecutionResult = {
-            reservationId: reservationId as UUID,
+        let bookingExecutionResult: TravelBookingExecutionResult = {
+            requestId: this.requestId,
             bookingId: null,
-            travelBookingRequest: request,
+            originalRequest: request,
             timestamp: new Date().getTime(),
             status: null,
             message: null,
         };
 
         try {
-            // saga-execute-step 1: MONGODB: Check if saga already exists (completed or in-progress)
-            const existingSaga = await this.sagaStateRepository.findByReservationId(reservationId);
+            // saga-execute-step 1: MONGODB - Check if saga already exists (completed or in-progress)
+            const existingSaga = await this.sagaStateRepository.findByRequestId(this.requestId);
             if (existingSaga) {
                 this.logger.log(`✅ Duplicate request detected, returning existing saga: ${existingSaga.bookingId}`);
                 return {
-                    reservationId: existingSaga.reservationId as UUID,
+                    requestId: existingSaga.requestId as UUID,
                     bookingId: existingSaga.bookingId,
-                    travelBookingRequest: request,
-                    timestamp: existingSaga.sagaTimestamp,
-                    status: this.mapSagaStatusToString(existingSaga.status),
+                    originalRequest: existingSaga.originalRequest,
+                    timestamp: existingSaga.timestamp,
+                    status: existingSaga.status,
                     message: existingSaga.errorMessage || null,
                 };
             }
 
-            // saga-execute-step 2: REDIS. Check if saga is currently in-flight (race condition protection)
-            const inFlightState = await this.sagaCoordinator.getInFlightState(reservationId);
-            if (inFlightState) {
-                this.logger.log(`⚠️ Saga already in-flight in Redis: ${reservationId}`);
+            // saga-execute-step 2: REDIS - Check if saga is currently in-active (race condition protection)
+            const activeSagaState = await this.sagaCoordinator.getActiveSagaState(this.requestId);
+            if (activeSagaState) {
+                this.logger.log(`⚠️ Saga already in-active in Redis: ${this.requestId}`);
                 return {
-                    reservationId,
-                    bookingId: inFlightState.bookingId || null,
-                    travelBookingRequest: request,
-                    timestamp: inFlightState.startTime || new Date().getTime(),
-                    status: 'pending',
-                    message: `saga already in progress for ${reservationId}, please wait for completion or check later`,
+                    requestId: this.requestId,
+                    bookingId: activeSagaState.bookingId || null,
+                    originalRequest: activeSagaState.metadata || request,
+                    timestamp: activeSagaState.timestamp || new Date().getTime(),
+                    status: activeSagaState.status || SagaStatus.PENDING,
+                    message:
+                        activeSagaState.message ||
+                        `Saga already in progress for ${this.requestId}, please wait for completion or check later`,
                 };
             }
 
             // saga-execute-step 3: Acquire distributed lock using idempotency key (prevent duplicate saga execution)
-            lockAcquired = await this.sagaCoordinator.acquireSagaLock(reservationId, 300);
+            lockAcquired = await this.sagaCoordinator.acquireSagaLock(this.requestId, 300);
             if (!lockAcquired) {
-                const errorMsg = `Saga already in progress for reservation: ${reservationId}`;
+                const errorMsg = `Saga already in progress for request: ${this.requestId}`;
                 this.logger.warn(`⚠️ ${errorMsg}`);
-                bookingExecutionResult.status = 'failed';
+                bookingExecutionResult.status = SagaStatus.FAILED;
                 bookingExecutionResult.message = errorMsg;
                 return bookingExecutionResult;
             }
@@ -125,83 +149,90 @@ export class TravelBookingSaga {
                 throw new Error(`Rate limit exceeded for user: ${request.userId}`);
             }
 
-            // Generate bookingId ONLY after all duplicate checks pass
-            bookingId = this.generateBookingId();
-            bookingExecutionResult.bookingId = bookingId;
-            this.logger.log(`Generated new bookingId: ${bookingId}`);
+            // TODO: Generate bookingId ONLY after all duplicate checks pass
+            this.bookingId = this.generateBookingId();
+
+            bookingExecutionResult.bookingId = this.bookingId;
+            this.logger.log(`Generated new bookingId: ${this.bookingId}`);
 
             // saga-execute-step 5: MONGODB: Save persistent state for audit and recovery
             await this.sagaStateRepository.create({
-                bookingId,
-                reservationId,
+                bookingId: this.bookingId,
+                requestId: this.requestId,
                 userId: request.userId,
                 status: SagaStatus.PENDING,
                 originalRequest: request as any,
                 totalAmount: request.totalAmount,
-                sagaTimestamp: Date.now(),
+                timestamp: Date.now(),
                 completedSteps: [],
             });
-            this.logger.log(`✅ Saga state saved to MongoDB: ${bookingId}`);
+            this.logger.log(`✅ Saga state saved to MongoDB: ${this.bookingId}`);
 
-            // saga-execute-step 6: REDIS. Cache in-flight state for fast reads (keyed by idempotencyKey)
-            await this.sagaCoordinator.cacheInFlightState(
-                reservationId,
+            // saga-execute-step 6: REDIS. Cache in-active state for fast reads (keyed by idempotencyKey)
+            await this.sagaCoordinator.cacheActiveSagaState(
+                this.requestId,
                 {
-                    bookingId,
-                    reservationId,
+                    bookingId: this.bookingId,
+                    requestId: this.requestId,
                     userId: request.userId,
-                    status: 'PENDING',
-                    startTime: Date.now(),
+                    status: SagaStatus.PENDING,
+                    timestamp: Date.now(),
                     totalAmount: request.totalAmount,
+                    metadata: request,
                 },
                 3600,
             );
 
             // saga-execute-step 7: Add to pending queue for monitoring
-            await this.sagaCoordinator.addToPendingQueue(bookingId);
+            await this.sagaCoordinator.addToPendingQueue(this.requestId);
 
             // saga-execute-step 8: publish hotel reservation request
             await this.billingBrokerClient.emit('reservation.hotel.requested', this.reserveHotel(request));
-            this.logger.log(`✅ reservation.hotel.requested event published: ${reservationId}`);
-            await this.sagaCoordinator.incrementStepCounter(bookingId, 'hotel_requested');
+            this.logger.log(`✅ reservation.hotel.requested event published: ${this.requestId}`);
+            await this.sagaCoordinator.incrementStepCounter(this.bookingId, 'hotel_requested');
 
             // saga-execute-step 9: publish flight reservation request
             await this.billingBrokerClient.emit('reservation.flight.requested', this.reserveFlight(request));
-            this.logger.log(`✅ reservation.flight.requested event published: ${reservationId}`);
-            await this.sagaCoordinator.incrementStepCounter(bookingId, 'flight_requested');
+            this.logger.log(`✅ reservation.flight.requested event published: ${this.requestId}`);
+            await this.sagaCoordinator.incrementStepCounter(this.bookingId, 'flight_requested');
 
             // saga-execute-step 10: publish car rental reservation request
             await this.billingBrokerClient.emit('reservation.carRental.requested', this.reserveCar(request));
-            this.logger.log(`✅ reservation.carRental.requested event published: ${reservationId}`);
-            await this.sagaCoordinator.incrementStepCounter(bookingId, 'car_requested');
+            this.logger.log(`✅ reservation.carRental.requested event published: ${this.requestId}`);
+            await this.sagaCoordinator.incrementStepCounter(this.bookingId, 'car_requested');
 
-            bookingExecutionResult.status = 'pending';
+            bookingExecutionResult.status = SagaStatus.PENDING;
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             const errorStack = error instanceof Error ? error.stack : undefined;
             this.logger.error(`❌ Failed to publish travel booking request: ${errorMessage}`, errorStack);
 
-            // saga-execute-step 11: MONGODB: Save error state (only if bookingId was generated)
-            if (bookingId) {
-                await this.sagaStateRepository.setError(bookingId, errorMessage, errorStack);
-            }
+            // saga-execute-step 11: MONGODB: Save error state
+            // Use requestId if bookingId not yet generated (e.g., rate limit failures)
+            const errorKey = this.bookingId || this.requestId;
+            await this.sagaStateRepository.setError(errorKey, errorMessage, errorStack);
 
-            // saga-execute-step 12: REDIS: Set error metadata (using idempotencyKey for tracking)
-            await this.sagaCoordinator.setSagaMetadata(reservationId, {
+            // saga-execute-step 12: REDIS: Set error metadata keyed by bookingId (for test/coordinator lookup)
+            // Also set by reservationId for idempotency tracking
+            const metadataPayload = {
                 error: errorMessage,
                 failedAt: Date.now().toString(),
-                bookingId: bookingId || 'not_generated',
-            });
+                bookingId: this.bookingId || 'not_generated',
+            };
+            await this.sagaCoordinator.setSagaMetadata(this.requestId, metadataPayload);
+            if (this.bookingId) {
+                await this.sagaCoordinator.setSagaMetadata(this.bookingId, metadataPayload);
+            }
 
-            bookingExecutionResult.status = 'failed';
+            bookingExecutionResult.status = SagaStatus.FAILED;
             bookingExecutionResult.message = errorMessage;
         } finally {
             // saga-execute-step 13: REDIS: Release distributed lock (using idempotencyKey)
             if (lockAcquired) {
-                await this.sagaCoordinator.releaseSagaLock(reservationId);
+                await this.sagaCoordinator.releaseSagaLock(this.requestId);
             }
-            // saga-execute-step 14: REDIS: Clear in-flight cache on completion or error
-            await this.sagaCoordinator.clearInFlightState(reservationId);
+            // saga-execute-step 14: REDIS: Clear in-active cache on completion or error
+            await this.sagaCoordinator.clearActiveSagaState(this.requestId);
         }
         return bookingExecutionResult;
     }
@@ -237,11 +268,11 @@ export class TravelBookingSaga {
 
             return {
                 bookingId,
-                travelBookingRequest: dto,
+                originalRequest: dto,
                 flightReservationId: flightReservation.reservationId,
                 hotelReservationId: hotelReservation.reservationId,
                 carRentalReservationId: carRentalReservation.reservationId,
-                status: 'confirmed',
+                status: SagaStatus.CONFIRMED,
                 timestamp: new Date(),
             };
         } catch (error) {
@@ -254,11 +285,11 @@ export class TravelBookingSaga {
 
             return {
                 bookingId,
-                travelBookingRequest: dto,
+                originalRequest: dto,
                 flightReservationId: flightReservation?.reservationId || null,
                 hotelReservationId: hotelReservation?.reservationId || null,
                 carRentalReservationId: carRentalReservation?.reservationId || null,
-                status: 'compensated',
+                status: SagaStatus.COMPENSATING,
                 errorMessage,
                 timestamp: new Date(),
             };
@@ -299,100 +330,13 @@ export class TravelBookingSaga {
 
             return {
                 bookingId,
-                travelBookingRequest: sagaState.originalRequest as any,
+                originalRequest: sagaState.originalRequest as any,
                 flightReservationId,
                 hotelReservationId,
                 carRentalReservationId,
-                status: 'confirmed',
-                timestamp: new Date(),
-            };
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            this.logger.error(`❌ Failed to aggregate results: ${errorMessage}`);
-
-            // MONGODB: Save error state
-            await this.sagaStateRepository.setError(bookingId, errorMessage);
-
-            // REDIS: Set error metadata (keep for debugging)
-            await this.sagaCoordinator.setSagaMetadata(
-                bookingId,
-                {
-                    error: errorMessage,
-                    failedAt: Date.now().toString(),
-                    step: 'aggregation',
-                },
-                7200,
-            ); // Keep error metadata for 2 hours
-
-            throw error;
-        }
-    }
-
-    /**
-     * Aggregate results from all reservation steps - Hybrid MongoDB + Redis approach
-     *
-     * This is called when all confirmations are received from message broker
-     *
-     * Redis: Try to get cached state first (fast read)
-     * MongoDB: Fallback if cache miss + persist final state (durable)
-     * Redis: Clean up coordination data after completion
-     */
-    async aggregateResults_(
-        bookingId: string,
-        flightResult: IFlightReservationResult,
-        hotelResult: HotelReservationResult,
-        carResult: IReservationConfirmResult,
-    ): Promise<TravelBookingResponseDto> {
-        this.logger.log(`Aggregating results for booking: ${bookingId}`);
-
-        try {
-            // REDIS: Try to get cached state first (fast read ~1ms)
-            let sagaState = await this.sagaCoordinator.getInFlightState(bookingId);
-
-            // MONGODB: Fallback if cache miss (durable read ~5-20ms)
-            if (!sagaState) {
-                this.logger.debug(`Cache miss - fetching from MongoDB: ${bookingId}`);
-                const mongoState = await this.sagaStateRepository.findByBookingId(bookingId);
-
-                if (!mongoState) {
-                    throw new Error(`Saga state not found for booking: ${bookingId}`);
-                }
-
-                sagaState = mongoState;
-            }
-
-            // MONGODB: Persist final state with all reservation IDs
-            await this.sagaStateRepository.updateState(bookingId, {
-                flightReservationId: flightResult.reservationId,
-                hotelReservationId: hotelResult.reservationId,
-                carRentalReservationId: carResult.reservationId,
                 status: SagaStatus.CONFIRMED,
-                completedSteps: ['flight_reserved', 'hotel_reserved', 'car_reserved', 'payment_processed'],
-            });
-
-            this.logger.log(`✅ Saga state updated in MongoDB: ${bookingId}`);
-
-            // REDIS: Track final step completion
-            await this.sagaCoordinator.incrementStepCounter(bookingId, 'aggregated');
-
-            // REDIS: Remove from pending queue (saga completed successfully)
-            await this.sagaCoordinator.removeFromPendingQueue(bookingId);
-
-            // REDIS: Clean up all coordination data (lock, cache, steps, metadata)
-            await this.sagaCoordinator.cleanup(bookingId);
-            this.logger.log(`✅ Redis coordination data cleaned up: ${bookingId}`);
-
-            const bookingExecutionResult: TravelBookingResponseDto = {
-                bookingId,
-                travelBookingRequest: sagaState.originalRequest as any,
-                flightReservationId: flightResult.reservationId,
-                hotelReservationId: hotelResult.reservationId,
-                carRentalReservationId: carResult.reservationId,
-                status: 'confirmed',
                 timestamp: new Date(),
             };
-
-            return bookingExecutionResult;
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             this.logger.error(`❌ Failed to aggregate results: ${errorMessage}`);
@@ -584,6 +528,11 @@ export class TravelBookingSaga {
         this.logger.log(`✅ Compensation Process Completed`);
     }
 
+    /**
+     * Generate a unique booking ID.
+     * @returns A unique booking ID string
+     * @example this.generateBookingId() => "TRV-1627890123456-ABC123DEF"
+     */
     private generateBookingId(): string {
         return `TRV-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
     }
@@ -608,14 +557,14 @@ export class TravelBookingSaga {
      */
     private mapSagaStatusToString(status: SagaStatus): string {
         switch (status) {
-            case SagaStatus.CONFIRMED:
-                return 'confirmed';
-            case SagaStatus.COMPENSATED:
-                return 'compensated';
-            case SagaStatus.FAILED:
-                return 'failed';
             case SagaStatus.PENDING:
-                return 'pending';
+                return 'PENDING';
+            case SagaStatus.CONFIRMED:
+                return 'CONFIRMED';
+            case SagaStatus.COMPENSATING:
+                return 'COMPENSATING';
+            case SagaStatus.FAILED:
+                return 'FAILED';
             default:
                 return 'unknown';
         }

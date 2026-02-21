@@ -2,7 +2,7 @@ import { CommandHandler, ICommandHandler, EventBus } from '@nestjs/cqrs';
 import { DepositCommand } from '../impl/deposit.command';
 import { BillingService } from '../../services/billing.service';
 import { StripeService } from '../../services/stripe.service';
-import { TransactionState, TransactionStateMachine } from '../../state-machines/transaction.state-machine';
+import { TransactionState, TransactionStateMachine } from '../../sagas/transaction.state-machine';
 import { Logger } from '@nestjs/common';
 import { DepositCompletedEvent } from '../../events/impl/deposit-completed.event';
 

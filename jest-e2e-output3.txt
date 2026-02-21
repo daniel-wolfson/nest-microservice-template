@@ -1,0 +1,327 @@
+  console.log
+    ≡ƒÜÇ Starting E2E Test Setup...
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:75:17)
+
+  console.log
+    Γ£à Docker services are running
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:89:21)
+
+  console.log
+    Γ£à Redis connected
+
+      at EventEmitter.<anonymous> (src/modules/cache/cache.redis.module.ts:42:51)
+
+  console.log
+    Γ£à Redis connection established successful
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:149:17)
+
+  console.log
+    Γ£à NestJS application initialized
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:156:17)
+
+  console.log
+
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:157:17)
+
+  console.log
+    Γ£à Saga state persisted to MongoDB: TRV-1771662886951-R8WT94TTK
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:222:21)
+
+  console.log
+    Γ£à Distributed lock managed correctly
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:232:21)
+
+  console.log
+    Γ£à In-active state cached in Redis
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:246:21)
+
+  console.log
+    Γ£à Saga steps tracked in Redis
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:261:21)
+
+  console.log
+    Γ£à Saga added to pending queue
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:271:21)
+
+[Nest] 25788  - 21/02/2026, 10:34:47   ERROR [TravelBookingSaga] Γ¥î Failed to publish travel booking request: Rate limit exceeded for user: rate-limit-test-user
+Error: Rate limit exceeded for user: rate-limit-test-user
+    at TravelBookingSaga.execute (D:\Projects\Nest\microservice-template\src\modules\billing\sagas\travel-booking.saga.ts:125:23)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Object.<anonymous> (D:\Projects\Nest\microservice-template\tests\billing\travel-booking.saga.e2e.spec.ts:280:21)
+[Nest] 25788  - 21/02/2026, 10:34:47   ERROR [TravelBookingSagaStateRepository] Setting error for booking TRV-1771662887215-JPZ412KMA: Rate limit exceeded for user: rate-limit-test-user
+(node:25788) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  console.log
+    Γ£à Rate limiting enforced: 5 succeeded, 1 failed
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:299:21)
+
+  console.log
+    Γ£à Distributed lock prevents concurrent execution
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:322:21)
+
+(node:25788) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+(node:25788) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+(node:25788) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+(node:25788) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+  console.log
+    Γ£à Aggregation completed and MongoDB updated
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:392:21)
+
+(node:25788) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+(node:25788) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+(node:25788) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+(node:25788) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+  console.log
+    Γ£à Redis coordination data cleaned up after aggregation
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:459:21)
+
+[Nest] 25788  - 21/02/2026, 10:34:47   ERROR [TravelBookingSaga] Γ¥î Failed to publish travel booking request: E2E Broker Error
+Error: E2E Broker Error
+    at Object.<anonymous> (D:\Projects\Nest\microservice-template\tests\billing\travel-booking.saga.e2e.spec.ts:467:75)
+    at Promise.then.completed (D:\Projects\Nest\microservice-template\node_modules\jest-circus\build\utils.js:298:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (D:\Projects\Nest\microservice-template\node_modules\jest-circus\build\utils.js:231:10)
+    at _callCircusTest (D:\Projects\Nest\microservice-template\node_modules\jest-circus\build\run.js:316:40)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async _runTest (D:\Projects\Nest\microservice-template\node_modules\jest-circus\build\run.js:252:3)
+    at async _runTestsForDescribeBlock (D:\Projects\Nest\microservice-template\node_modules\jest-circus\build\run.js:126:9)
+    at async _runTestsForDescribeBlock (D:\Projects\Nest\microservice-template\node_modules\jest-circus\build\run.js:121:9)
+    at async _runTestsForDescribeBlock (D:\Projects\Nest\microservice-template\node_modules\jest-circus\build\run.js:121:9)
+    at async run (D:\Projects\Nest\microservice-template\node_modules\jest-circus\build\run.js:71:3)
+    at async runAndTransformResultsToJestFormat (D:\Projects\Nest\microservice-template\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+    at async jestAdapter (D:\Projects\Nest\microservice-template\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+    at async runTestInternal (D:\Projects\Nest\microservice-template\node_modules\jest-runner\build\runTest.js:367:16)
+    at async runTest (D:\Projects\Nest\microservice-template\node_modules\jest-runner\build\runTest.js:444:34)
+[Nest] 25788  - 21/02/2026, 10:34:47   ERROR [TravelBookingSagaStateRepository] Setting error for booking TRV-1771662887503-7F9S18GUZ: E2E Broker Error
+(node:25788) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+  console.log
+    Γ£à Error state persisted to MongoDB
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:479:21)
+
+[Nest] 25788  - 21/02/2026, 10:34:47   ERROR [TravelBookingSaga] Γ¥î Failed to publish travel booking request: E2E Redis Metadata Test
+Error: E2E Redis Metadata Test
+    at Object.<anonymous> (D:\Projects\Nest\microservice-template\tests\billing\travel-booking.saga.e2e.spec.ts:485:75)
+    at Promise.then.completed (D:\Projects\Nest\microservice-template\node_modules\jest-circus\build\utils.js:298:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (D:\Projects\Nest\microservice-template\node_modules\jest-circus\build\utils.js:231:10)
+    at _callCircusTest (D:\Projects\Nest\microservice-template\node_modules\jest-circus\build\run.js:316:40)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async _runTest (D:\Projects\Nest\microservice-template\node_modules\jest-circus\build\run.js:252:3)
+    at async _runTestsForDescribeBlock (D:\Projects\Nest\microservice-template\node_modules\jest-circus\build\run.js:126:9)
+    at async _runTestsForDescribeBlock (D:\Projects\Nest\microservice-template\node_modules\jest-circus\build\run.js:121:9)
+    at async _runTestsForDescribeBlock (D:\Projects\Nest\microservice-template\node_modules\jest-circus\build\run.js:121:9)
+    at async run (D:\Projects\Nest\microservice-template\node_modules\jest-circus\build\run.js:71:3)
+    at async runAndTransformResultsToJestFormat (D:\Projects\Nest\microservice-template\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+    at async jestAdapter (D:\Projects\Nest\microservice-template\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+    at async runTestInternal (D:\Projects\Nest\microservice-template\node_modules\jest-runner\build\runTest.js:367:16)
+    at async runTest (D:\Projects\Nest\microservice-template\node_modules\jest-runner\build\runTest.js:444:34)
+[Nest] 25788  - 21/02/2026, 10:34:47   ERROR [TravelBookingSagaStateRepository] Setting error for booking TRV-1771662887538-PXYCI4Z7N: E2E Redis Metadata Test
+(node:25788) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+  console.log
+    Γ£à Error metadata set in Redis
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:493:21)
+
+  console.log
+    Γ£à Hybrid architecture: Redis cache + MongoDB persistence verified
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:518:21)
+
+  console.log
+    Γ£à MongoDB fallback works when Redis cache expires
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:538:21)
+
+  console.log
+    ≡ƒöä Testing complete saga lifecycle...
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:544:21)
+
+  console.log
+      Γ£ô Step 1: Saga executed (TRV-1771662887621-TERV8OZQM)
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:549:21)
+
+  console.log
+      Γ£ô Step 2: Pending state verified in MongoDB
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:554:21)
+
+  console.log
+      Γ£ô Step 3: Redis coordination active
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:559:21)
+
+(node:25788) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+(node:25788) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+(node:25788) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+(node:25788) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+  console.log
+      Γ£ô Step 4: Results aggregated successfully
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:584:21)
+
+  console.log
+      Γ£ô Step 5: Confirmed state persisted in MongoDB
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:592:21)
+
+  console.log
+      Γ£ô Step 6: Redis coordination data cleaned
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:597:21)
+
+  console.log
+    Γ£à Complete saga lifecycle verified successfully!
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:599:21)
+
+  console.log
+    ≡ƒÜÇ Setting up event-driven E2E test module...
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:612:21)
+
+  console.log
+    Γ£à Event-driven test module initialized
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:687:21)
+
+  console.log
+    Γ£à Redis connected
+
+      at EventEmitter.<anonymous> (src/modules/cache/cache.redis.module.ts:42:51)
+
+  console.log
+    ≡ƒöä Testing event-driven saga lifecycle...
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:705:21)
+
+  console.log
+      Γ£ô Step 1: Saga executed ΓåÆ bookingId: TRV-1771662887723-836NFC4NB
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:711:21)
+
+  console.log
+      Γ£ô Step 2: Subscribed to notification stream for TRV-1771662887723-836NFC4NB
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:731:21)
+
+  console.log
+      Γ£ô Step 3: Published flight / hotel / car reservation events
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:768:21)
+
+(node:25788) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+(node:25788) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+(node:25788) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+(node:25788) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+  console.log
+      Γ£ô Step 4: Notification received ΓÇö status: confirmed
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:774:21)
+
+  console.log
+      Γ£ô Step 5: MongoDB state ΓåÆ CONFIRMED with all three reservation IDs
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:782:21)
+
+  console.log
+      Γ£ô Step 6: Redis coordination data cleaned up
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:789:21)
+
+  console.log
+      Γ£ô Step 7: Notification result DTO contains all reservation IDs
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:795:21)
+
+  console.log
+    Γ£à Event-driven saga lifecycle verified successfully!
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:797:21)
+
+  console.log
+    ≡ƒº╣ Redis disconnected
+
+      at RedisModule.onModuleDestroy (src/modules/cache/cache.redis.module.ts:67:17)
+
+  console.log
+    ≡ƒöî Redis connection closed
+
+      at EventEmitter.<anonymous> (src/modules/cache/cache.redis.module.ts:50:49)
+
+  console.log
+    ≡ƒº╣ Cleaning up E2E Test...
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:161:17)
+
+  console.log
+    Γ£à MongoDB test data cleaned
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:165:17)
+
+  console.log
+    Γ£à Redis test data cleaned
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:172:17)
+
+  console.log
+    ≡ƒº╣ Redis disconnected
+
+      at RedisModule.onModuleDestroy (src/modules/cache/cache.redis.module.ts:67:17)
+
+  console.log
+    ≡ƒöî Redis connection closed
+
+      at EventEmitter.<anonymous> (src/modules/cache/cache.redis.module.ts:50:49)
+
+  console.log
+    Γ£à Connections closed
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:177:17)
+
+PASS tests/billing/travel-booking.saga.e2e.spec.ts (13.288 s)
+  TravelBookingSaga E2E (Redis + MongoDB)
+    Complete Saga Flow with Real Infrastructure
+      ΓêÜ should execute saga and persist state in MongoDB (62 ms)
+      ΓêÜ should create distributed lock in Redis during execution (31 ms)
+      ΓêÜ should cache in-active state in Redis (23 ms)
+      ΓêÜ should track saga steps in Redis (31 ms)
+      ΓêÜ should add saga to pending queue in Redis (34 ms)
+      ΓêÜ should enforce rate limiting across multiple requests (146 ms)
+      ΓêÜ should prevent concurrent execution with distributed lock (120 ms)
+    Aggregate Results with Real Infrastructure
+      ΓêÜ should aggregate results and update MongoDB state (64 ms)
+      ΓêÜ should cleanup Redis data after successful aggregation (47 ms)
+    Error Scenarios with Real Infrastructure
+      ΓêÜ should persist error state in MongoDB on failure (33 ms)
+      ΓêÜ should set error metadata in Redis on failure (32 ms)
+    Hybrid MongoDB + Redis Architecture
+      ΓêÜ should use Redis cache for fast reads, MongoDB for persistence (28 ms)
+      ΓêÜ should fallback to MongoDB when Redis cache expires (25 ms)
+    Real-World Saga Lifecycle
+      ΓêÜ should complete full saga lifecycle: execute ΓåÆ pending ΓåÆ aggregate ΓåÆ confirmed (45 ms)
+    Event-Driven Saga Lifecycle (Real Event Handlers, No Manual aggregateResults)
+      ΓêÜ should complete saga via real event handlers: execute ΓåÆ publish events ΓåÆ handlers fire JOIN POINT ΓåÆ confirmed (83 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       15 passed, 15 total
+Snapshots:   0 total
+Time:        13.448 s, estimated 18 s
+Ran all test suites matching /tests\\billing\\travel-booking.saga.e2e.spec.ts/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

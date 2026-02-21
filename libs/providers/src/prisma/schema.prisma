@@ -15,6 +15,7 @@ datasource db {
 // Prisma Client generator
 generator client {
   provider = "prisma-client-js"
+  output   = "../../../../generated/prisma"
 }
 
 // Optional: DBML generator for visual diagrams

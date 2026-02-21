@@ -54,11 +54,11 @@ export class ApiHelper {
         if (ApiHelper.config?.environment == 'production') return; // Skip delay in production for better performance
 
         // Simulate failure rate for testing
-        if (Math.random() < errorRate) {
-            const logger = new Logger('ApiHelper');
-            logger.error('reservation random failed to simulate compensation flow');
-            throw new Error('reservation random failed to simulate compensation flow');
-        }
+        // if (Math.random() < errorRate) {
+        //     const logger = new Logger('ApiHelper');
+        //     logger.error('reservation random failed to simulate compensation flow');
+        //     throw new Error('reservation random failed to simulate compensation flow');
+        // }
 
         ms = ms ?? ApiHelper.config?.defaultDelay ?? 500; // Default to 500ms if no value is provided
         return new Promise(resolve => setTimeout(resolve, ms));

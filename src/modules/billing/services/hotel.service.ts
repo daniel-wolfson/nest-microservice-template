@@ -4,9 +4,10 @@ import { HotelReservationResult } from '../dto/hotel-reservation-result.dto';
 import { TravelBookingSagaStateRepository } from '../sagas/travel-booking-saga-state.repository';
 import { SagaCoordinator } from '../sagas/saga-coordinator.service';
 import { TravelBookingSaga } from '../sagas/travel-booking.saga';
-import { BookingNotificationService } from './booking-notification.service';
+import { TravelBookingNotificationService } from '../webhooks_sse/travel-booking-notification.service';
 import { ApiHelper } from '@/modules/helpers/helper.service';
 import { IReservationService } from './reservation-service.inteface';
+import { SagaStatus } from '../sagas/saga-status.enum';
 
 const ALL_CONFIRMATION_STEPS = ['flight_confirmed', 'hotel_confirmed', 'car_confirmed'];
 
@@ -24,7 +25,7 @@ export class HotelService implements IReservationService {
         private readonly sagaCoordinator: SagaCoordinator,
         @Inject(forwardRef(() => TravelBookingSaga))
         private readonly saga: TravelBookingSaga,
-        private readonly notificationService: BookingNotificationService,
+        private readonly notificationService: TravelBookingNotificationService,
     ) {}
 
     /**
@@ -45,7 +46,7 @@ export class HotelService implements IReservationService {
         const result: HotelReservationResult = {
             reservationId,
             confirmationCode,
-            status: 'confirmed',
+            status: SagaStatus.PENDING, // Initially PENDING until confirmed by the saga
             amount: dto.amount,
             checkInDate: dto.checkInDate,
             checkOutDate: dto.checkOutDate,
@@ -72,8 +73,8 @@ export class HotelService implements IReservationService {
             this.logger.log(`🏨 Confirming hotel reservation ${reservationId} for booking ${bookingId}`);
 
             const updatedState = await this.sagaStateRepository.saveConfirmedReservation(
-                bookingId,
                 'hotel',
+                bookingId,
                 reservationId,
                 'hotel_confirmed',
             );
@@ -117,7 +118,7 @@ export class HotelService implements IReservationService {
         }
 
         // Mark as cancelled
-        reservation.status = 'pending'; // In real system, this would be 'cancelled'
+        reservation.status = SagaStatus.PENDING; // In real system, this would be 'cancelled'
         this.reservations.delete(reservationId);
 
         this.logger.log(`Hotel reservation ${reservationId} cancelled successfully`);

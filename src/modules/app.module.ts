@@ -6,8 +6,8 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { ProvidersModule } from '@lib/providers';
 import { SharedModule } from '@lib/shared';
 
-import configuration from 'src/config/configuration';
-import { EnvironmentConfigFactory } from 'src/config/environment.config';
+import configuration from '@/config/configuration';
+import { EnvironmentConfigFactory } from '@/config/environment.config';
 import appConfigurationFactory from './app-config/app-config.factory';
 import { appConfigValidationSchema } from './app-config/app-config.validation';
 

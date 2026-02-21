@@ -2,7 +2,7 @@ import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 import { TravelBookingHotelReservationEvent } from '../impl/booking-reservation-event';
 import { HotelService } from '../../services/hotel.service';
-import { BookingNotificationService } from '../../services/booking-notification.service';
+import { TravelBookingNotificationService } from '../../webhooks_sse/travel-booking-notification.service';
 
 /**
  * Travel Booking Hotel Reservation Event Handler

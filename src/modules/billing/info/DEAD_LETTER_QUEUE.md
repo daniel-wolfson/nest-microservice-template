@@ -97,7 +97,7 @@ await this.deadLetterQueueRepository.save({
     errorStack: event.errorStack,
     timestamp: event.timestamp,
     retryCount: event.retryCount,
-    status: 'pending',
+    status: 'PENDING',
 });
 
 // 2. Send alert to operations team
@@ -239,7 +239,7 @@ CREATE TABLE dead_letter_queue (
   error_stack TEXT,
   timestamp TIMESTAMP NOT NULL,
   retry_count INTEGER DEFAULT 0,
-  status VARCHAR(20) DEFAULT 'pending',
+  status VARCHAR(20) DEFAULT 'PENDING',
   last_retry_at TIMESTAMP,
   resolved_at TIMESTAMP,
   resolved_by VARCHAR(100),
@@ -267,7 +267,7 @@ export class DeadLetterQueueRepository {
                 errorStack: event.errorStack,
                 timestamp: event.timestamp,
                 retryCount: event.retryCount,
-                status: 'pending',
+                status: 'PENDING',
             },
         });
     }

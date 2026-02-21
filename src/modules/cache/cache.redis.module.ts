@@ -1,6 +1,6 @@
 import { Module, Global, OnModuleDestroy, Inject } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import Redis from 'ioredis';
+import Redis, { RedisOptions } from 'ioredis';
 
 export const REDIS_CLIENT = 'REDIS_CLIENT';
 
@@ -11,12 +11,22 @@ export const REDIS_CLIENT = 'REDIS_CLIENT';
         {
             provide: REDIS_CLIENT,
             useFactory: (configService: ConfigService) => {
-                const redis = new Redis({
+                const redisConfig: RedisOptions = {
                     host: configService.get<string>('REDIS_HOST', 'localhost'),
                     port: configService.get<number>('REDIS_PORT', 6379),
                     password: configService.get<string>('REDIS_PASSWORD'),
                     db: configService.get<number>('REDIS_DB', 0),
-                    retryStrategy: times => {
+                    keepAlive: 30000, // ← Keep the connection active
+                    connectTimeout: 10000,
+                    commandTimeout: 5000,
+                    reconnectOnError: err => {
+                        const targetError = 'READONLY';
+                        if (err.message.includes(targetError)) {
+                            return true; // reconnect
+                        }
+                        return false;
+                    },
+                    retryStrategy: (times: number) => {
                         if (times > 3) {
                             console.error('Redis connection failed after 3 retries');
                             return null;
@@ -25,8 +35,9 @@ export const REDIS_CLIENT = 'REDIS_CLIENT';
                     },
                     maxRetriesPerRequest: 3,
                     enableReadyCheck: true,
-                    lazyConnect: false,
-                });
+                    lazyConnect: true,
+                };
+                const redis = new Redis(redisConfig);
 
                 redis.on('connect', () => console.log('✅ Redis connected'));
                 // Suppress expected shutdown/network-reset errors so they don't propagate

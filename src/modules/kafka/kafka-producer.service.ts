@@ -5,7 +5,7 @@ import { ProducerStrategyFactory } from './producer-strategy.factory';
 import { DeliverySemantics } from './delivery-semantics-strategy.enum';
 import { IProducerDeliveryStrategy } from './producer-delivery-strategy.interface';
 import { KafkaProducerSettings } from './kafka-producer-settings';
-import { StructuredLogger } from 'src/common/winston.logger';
+import { StructuredLogger } from '@/common/winston.logger';
 
 @Injectable()
 export class KafkaProducerService implements OnModuleInit, OnModuleDestroy {

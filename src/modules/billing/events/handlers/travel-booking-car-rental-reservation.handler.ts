@@ -2,7 +2,7 @@ import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 import { TravelBookingCarRentalReservationEvent } from '../impl/booking-reservation-event';
 import { CarRentalService } from '../../services/car-rental.service';
-import { BookingNotificationService } from '../../services/booking-notification.service';
+import { TravelBookingNotificationService } from '../../webhooks_sse/travel-booking-notification.service';
 
 /**
  * Travel Booking Car Rental Reservation Event Handler

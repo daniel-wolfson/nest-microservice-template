@@ -1,7 +1,7 @@
 import { Injectable, OnModuleDestroy, OnModuleInit, Inject } from '@nestjs/common';
 import { Kafka, Consumer, ConsumerSubscribeTopic, EachMessagePayload } from 'kafkajs';
 import { KafkaSettings } from './kafka-settings';
-import { StructuredLogger } from 'src/common/winston.logger';
+import { StructuredLogger } from '@/common/winston.logger';
 
 export interface MessageHandler {
     handle(payload: EachMessagePayload): Promise<void>;

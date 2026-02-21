@@ -1,6 +1,8 @@
+import { SagaStatus } from '../sagas/saga-status.enum';
+
 export interface IFlightReservationResult {
     reservationId: string;
     confirmationCode: string;
-    status: 'confirmed' | 'pending';
+    status: SagaStatus;
     amount: number;
 }

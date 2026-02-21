@@ -4,7 +4,7 @@ import { BillingQueryController } from './controllers/billing-query.controller';
 import { BILLING_BROKER_CLIENT } from './brokers/billing-broker.constants';
 import { BillingService } from './services/billing.service';
 import { BookingCommandController } from './controllers/booking-command.controller';
-import { BookingNotificationService } from './services/booking-notification.service';
+import { TravelBookingNotificationService } from './webhooks_sse/travel-booking-notification.service';
 import { BookingSseController } from './controllers/booking-sse.controller';
 import { CarRentalService } from './services/car-rental.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -25,7 +25,7 @@ import { SagaModule } from './sagas/travel-booking-saga.module';
 import { PrismaModule } from '@/modules/prisma/prisma.module';
 import { StripeService } from './services/stripe.service';
 import { VirtualAccountService } from './services/virtual-account.service';
-import { TransactionStateMachine } from './state-machines/transaction.state-machine';
+import { TransactionStateMachine } from './sagas/transaction.state-machine';
 import { WebhookController } from './controllers/webhook.controller';
 
 @Module({
@@ -57,7 +57,7 @@ import { WebhookController } from './controllers/webhook.controller';
     ],
     providers: [
         BillingService,
-        BookingNotificationService,
+        TravelBookingNotificationService,
         InvoiceService,
         HotelService,
         FlightService,

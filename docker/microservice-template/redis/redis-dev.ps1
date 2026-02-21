@@ -66,5 +66,5 @@ Write-Host ""
 Write-Host "📚 Saga Monitoring:" -ForegroundColor Cyan
 Write-Host "  - View locks:       docker exec -it microservice-template-redis redis-cli KEYS 'saga:lock:*'"
 Write-Host "  - View pending:     docker exec -it microservice-template-redis redis-cli ZRANGE saga:pending 0 -1 WITHSCORES"
-Write-Host "  - View cache:       docker exec -it microservice-template-redis redis-cli KEYS 'saga:inflight:*'"
+Write-Host "  - View cache:       docker exec -it microservice-template-redis redis-cli KEYS 'saga:in-active:*'"
 Write-Host ""

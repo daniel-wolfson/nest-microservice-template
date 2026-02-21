@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { TransactionStateMachine, TransactionState } from '@/modules/billing/state-machines/transaction.state-machine';
+import { TransactionStateMachine, TransactionState } from '@/modules/billing/sagas/transaction.state-machine';
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { SagaStatus } from '@/modules/billing/sagas/saga-status.enum';
 
 describe('TransactionStateMachine', () => {
     let stateMachine: TransactionStateMachine;
@@ -41,7 +42,7 @@ describe('TransactionStateMachine', () => {
             const mockTransaction = {
                 id: 'txn-1',
                 state: TransactionState.CREATED,
-                status: 'PENDING',
+                status: SagaStatus.PENDING,
             };
 
             mockPrismaService.transaction.findUnique.mockResolvedValue(mockTransaction);
@@ -86,7 +87,7 @@ describe('TransactionStateMachine', () => {
             const mockTransaction = {
                 id: 'txn-1',
                 state: TransactionState.CREATED,
-                status: 'PENDING',
+                status: SagaStatus.PENDING,
             };
 
             mockPrismaService.transaction.findUnique.mockResolvedValue(mockTransaction);

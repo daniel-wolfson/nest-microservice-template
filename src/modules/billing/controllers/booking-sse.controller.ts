@@ -1,7 +1,7 @@
 import { Controller, Get, Param, Sse, MessageEvent, Logger } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { Observable, map, timeout, catchError, EMPTY } from 'rxjs';
-import { BookingNotificationService } from '../services/booking-notification.service';
+import { TravelBookingNotificationService } from '../webhooks_sse/travel-booking-notification.service';
 
 /**
  * SSE endpoint for real-time booking status updates.
@@ -24,7 +24,7 @@ import { BookingNotificationService } from '../services/booking-notification.ser
 export class BookingSseController {
     private readonly logger = new Logger(BookingSseController.name);
 
-    constructor(private readonly notificationService: BookingNotificationService) {}
+    constructor(private readonly notificationService: TravelBookingNotificationService) {}
 
     /**
      * Subscribe to booking status updates via Server-Sent Events.

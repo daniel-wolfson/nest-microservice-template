@@ -9,7 +9,7 @@ import { CompensationFailedEvent } from '@/modules/billing/events/impl/compensat
 import { TravelBookingSagaStateRepository } from '@/modules/billing/sagas/travel-booking-saga-state.repository';
 import { SagaCoordinator } from '@/modules/billing/sagas/saga-coordinator.service';
 import { BILLING_BROKER_CLIENT } from '@/modules/billing/brokers/billing-broker.constants';
-import { SagaStatus } from '@/modules/billing/sagas/travel-booking-saga-state.schema';
+import { SagaStatus } from '@/modules/billing/sagas/saga-status.enum';
 
 describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
     let saga: TravelBookingSaga;
@@ -52,7 +52,7 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
                         acquireSagaLock: jest.fn().mockResolvedValue(true),
                         releaseSagaLock: jest.fn().mockResolvedValue(undefined),
                         checkRateLimit: jest.fn().mockResolvedValue(true),
-                        cacheInFlightState: jest.fn().mockResolvedValue(undefined),
+                        cacheActiveSagaState: jest.fn().mockResolvedValue(undefined),
                         addToPendingQueue: jest.fn().mockResolvedValue(undefined),
                         incrementStepCounter: jest.fn().mockResolvedValue(1),
                         setSagaMetadata: jest.fn().mockResolvedValue(undefined),
@@ -83,7 +83,7 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
     });
 
     const createMockDto = (): BookingData => ({
-        reservationId: 'mock-reservation-' + Date.now(),
+        requestId: 'mock-reservation-' + Date.now(),
         userId: 'user-123',
         flightOrigin: 'JFK',
         flightDestination: 'LAX',
@@ -105,7 +105,7 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
             jest.spyOn(flightService, 'makeReservation').mockResolvedValue({
                 reservationId: 'FLT-123',
                 confirmationCode: 'ABC123',
-                status: 'confirmed',
+                status: SagaStatus.CONFIRMED,
                 amount: 1000,
             });
 
@@ -115,7 +115,7 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
                 checkInDate: '2026-03-15',
                 checkOutDate: '2026-03-22',
                 confirmationCode: 'DEF456',
-                status: 'confirmed',
+                status: SagaStatus.CONFIRMED,
                 amount: 875,
                 timestamp: new Date().toISOString(),
             });
@@ -157,7 +157,7 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
             jest.spyOn(flightService, 'makeReservation').mockResolvedValue({
                 reservationId: 'FLT-123',
                 confirmationCode: 'ABC123',
-                status: 'confirmed',
+                status: SagaStatus.CONFIRMED,
                 amount: 1000,
             });
 
@@ -167,7 +167,7 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
                 checkInDate: '2026-03-15',
                 checkOutDate: '2026-03-22',
                 confirmationCode: 'DEF456',
-                status: 'confirmed',
+                status: SagaStatus.CONFIRMED,
                 amount: 875,
                 timestamp: new Date().toISOString(),
             });
@@ -198,7 +198,7 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
             jest.spyOn(flightService, 'makeReservation').mockResolvedValue({
                 reservationId: 'FLT-123',
                 confirmationCode: 'ABC123',
-                status: 'confirmed',
+                status: SagaStatus.CONFIRMED,
                 amount: 1000,
             });
 
@@ -208,7 +208,7 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
                 checkInDate: '2026-03-15',
                 checkOutDate: '2026-03-22',
                 confirmationCode: 'DEF456',
-                status: 'confirmed',
+                status: SagaStatus.CONFIRMED,
                 amount: 875,
                 timestamp: new Date().toISOString(),
             });
@@ -216,7 +216,7 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
             jest.spyOn(carRentalService, 'makeReservation').mockResolvedValue({
                 reservationId: 'CAR-789',
                 confirmationCode: 'GHI789',
-                status: 'confirmed',
+                status: SagaStatus.CONFIRMED,
                 amount: 625,
             });
 
@@ -250,7 +250,7 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
             jest.spyOn(flightService, 'makeReservation').mockResolvedValue({
                 reservationId: 'FLT-123',
                 confirmationCode: 'ABC123',
-                status: 'confirmed',
+                status: SagaStatus.CONFIRMED,
                 amount: 1000,
             });
 
@@ -277,7 +277,7 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
             jest.spyOn(flightService, 'makeReservation').mockResolvedValue({
                 reservationId: 'FLT-123',
                 confirmationCode: 'ABC123',
-                status: 'confirmed',
+                status: SagaStatus.CONFIRMED,
                 amount: 1000,
             });
 
@@ -301,7 +301,7 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
             jest.spyOn(flightService, 'makeReservation').mockResolvedValue({
                 reservationId: 'FLT-123',
                 confirmationCode: 'ABC123',
-                status: 'confirmed',
+                status: SagaStatus.CONFIRMED,
                 amount: 1000,
             });
 
@@ -311,7 +311,7 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
                 checkInDate: '2026-03-15',
                 checkOutDate: '2026-03-22',
                 confirmationCode: 'DEF456',
-                status: 'confirmed',
+                status: SagaStatus.CONFIRMED,
                 amount: 875,
                 timestamp: new Date().toISOString(),
             });

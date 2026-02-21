@@ -19,6 +19,7 @@
         "noFallthroughCasesInSwitch": false,
         "types": ["node", "jest"],
         "paths": {
+            "@prisma/client": ["./generated/prisma"],
             "@lib/errors": ["./libs/errors/src"],
             "@lib/errors/*": ["./libs/errors/src/*"],
             "@lib/providers": ["./libs/providers/src"],

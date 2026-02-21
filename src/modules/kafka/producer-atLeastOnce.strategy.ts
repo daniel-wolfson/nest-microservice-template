@@ -29,7 +29,7 @@ export class AtLeastOnceProducerStrategy<T = any> extends BaseProducerDeliverySt
             },
             // Disable idempotence (allows duplicates for performance)
             idempotent: false,
-            // Allow multiple in-flight requests for better throughput
+            // Allow multiple in-active requests for better throughput
             maxInFlightRequests: producerSettings.maxInFlightRequests || 5,
         };
 

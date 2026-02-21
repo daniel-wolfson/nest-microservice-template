@@ -72,7 +72,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             timestamp: new Date().toISOString(),
             path: request.url,
             method: request.method,
-            ...(request.user && { userId: request.user.id }),
+            ...(request.user && { userId: request.user?.userId }),
             ...(!isProduction &&
                 exception instanceof Error && {
                     stack: exception.stack,

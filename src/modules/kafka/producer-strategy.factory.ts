@@ -5,7 +5,7 @@ import { IProducerDeliveryStrategy } from './producer-delivery-strategy.interfac
 import { AtLeastOnceProducerStrategy } from './producer-atLeastOnce.strategy';
 import { AtMostOnceProducerStrategy } from './producer-atMostOnce.strategy';
 import { ExactlyOnceProducerStrategy } from './producer.exactlyOnce.strategy';
-import { StructuredLogger } from 'src/common/winston.logger';
+import { StructuredLogger } from '@/common/winston.logger';
 
 @Injectable()
 export class ProducerStrategyFactory {

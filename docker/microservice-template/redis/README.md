@@ -52,8 +52,8 @@ PONG
 # View saga steps
 127.0.0.1:6379> HGETALL saga:steps:abc-123
 
-# View in-flight state
-127.0.0.1:6379> GET saga:inflight:abc-123
+# View in-active state
+127.0.0.1:6379> GET saga:in-active:abc-123
 
 # View rate limit
 127.0.0.1:6379> GET saga:ratelimit:user123
@@ -75,14 +75,14 @@ Features:
 
 ### Keys Used by Saga Coordinator
 
-| Key Pattern                 | Type             | TTL   | Purpose                |
-| --------------------------- | ---------------- | ----- | ---------------------- |
-| `saga:lock:{bookingId}`     | String           | 300s  | Distributed locks      |
-| `saga:inflight:{bookingId}` | String (JSON)    | 3600s | Cached saga state      |
-| `saga:steps:{bookingId}`    | Hash             | 7200s | Step progress tracking |
-| `saga:metadata:{bookingId}` | Hash             | 7200s | Saga metadata          |
-| `saga:ratelimit:{userId}`   | String (counter) | 60s   | Rate limiting          |
-| `saga:pending`              | Sorted Set       | None  | Pending saga queue     |
+| Key Pattern                  | Type             | TTL   | Purpose                |
+| ---------------------------- | ---------------- | ----- | ---------------------- |
+| `saga:lock:{bookingId}`      | String           | 300s  | Distributed locks      |
+| `saga:in-active:{bookingId}` | String (JSON)    | 3600s | Cached saga state      |
+| `saga:steps:{bookingId}`     | Hash             | 7200s | Step progress tracking |
+| `saga:metadata:{bookingId}`  | Hash             | 7200s | Saga metadata          |
+| `saga:ratelimit:{userId}`    | String (counter) | 60s   | Rate limiting          |
+| `saga:pending`               | Sorted Set       | None  | Pending saga queue     |
 
 ## Monitoring
 

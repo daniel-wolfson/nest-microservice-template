@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, Logger } from '@nestjs/common';
 import { CqrsModule, EventBus } from '@nestjs/cqrs';
 import { HttpModule } from '@nestjs/axios';
 import Redis from 'ioredis';
@@ -9,11 +9,7 @@ import { getModelToken } from '@nestjs/mongoose';
 import { TravelBookingSaga } from '@/modules/billing/sagas/travel-booking.saga';
 import { TravelBookingSagaStateRepository } from '@/modules/billing/sagas/travel-booking-saga-state.repository';
 import { SagaCoordinator } from '@/modules/billing/sagas/saga-coordinator.service';
-import {
-    TravelBookingSagaState,
-    TravelBookingSagaStateSchema,
-    SagaStatus,
-} from '@/modules/billing/sagas/travel-booking-saga-state.schema';
+
 import { BookingData } from '@/modules/billing/dto/booking-data.dto';
 import { FlightService } from '@/modules/billing/services/flight.service';
 import { HotelService } from '@/modules/billing/services/hotel.service';
@@ -28,13 +24,18 @@ import { TravelBookingFlightReservationHandler } from '@/modules/billing/events/
 import { TravelBookingHotelReservationHandler } from '@/modules/billing/events/handlers/travel-booking-hotel-reservation.handler';
 import { TravelBookingCarRentalReservationHandler } from '@/modules/billing/events/handlers/travel-booking-car-rental-reservation.handler';
 import {
-    BookingNotificationService,
-    BookingNotification,
-} from '@/modules/billing/services/booking-notification.service';
+    TravelBookingNotificationService,
+    TravelBookingNotification,
+} from '@/modules/billing/webhooks_sse/travel-booking-notification.service';
 import { randomUUID } from 'crypto';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { REDIS_CLIENT, RedisModule } from '@/modules/cache/cache.redis.module';
+import {
+    TravelBookingSagaState,
+    TravelBookingSagaStateSchema,
+} from '@/modules/billing/sagas/travel-booking-saga-state.schema';
+import { SagaStatus } from '@/modules/billing/sagas/saga-status.enum';
 
 const execAsync = promisify(exec);
 
@@ -66,25 +67,9 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
     let sagaStateModel: Model<TravelBookingSagaState>;
 
     const MONGODB_URI = 'mongodb://admin:123456@localhost:27017/microservice-template-billing-test?authSource=admin';
-    const REDIS_HOST = 'localhost';
-    const REDIS_PORT = 6379;
 
-    const mockTravelBookingDto: BookingData = {
-        reservationId: randomUUID(),
-        userId: 'e2e-user-123',
-        flightOrigin: 'JFK',
-        flightDestination: 'LAX',
-        departureDate: '2026-05-01',
-        returnDate: '2026-05-08',
-        hotelId: 'e2e-hotel-456',
-        checkInDate: '2026-05-01',
-        checkOutDate: '2026-05-08',
-        carPickupLocation: 'LAX Airport',
-        carDropoffLocation: 'LAX Airport',
-        carPickupDate: '2026-05-01',
-        carDropoffDate: '2026-05-08',
-        totalAmount: 3500,
-    };
+    // Fresh reservationId per test — prevents findByReservationId() from returning stale cross-test data
+    let mockTravelBookingDto: BookingData;
 
     beforeAll(async () => {
         console.log('🚀 Starting E2E Test Setup...');
@@ -143,7 +128,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
                 // Services now inject BookingNotificationService — provide a no-op mock
                 // so the module compiles without the full HttpModule dependency chain.
                 {
-                    provide: BookingNotificationService,
+                    provide: TravelBookingNotificationService,
                     useValue: {
                         notifyBookingConfirmed: jest.fn().mockResolvedValue(undefined),
                         notifyBookingFailed: jest.fn().mockResolvedValue(undefined),
@@ -193,6 +178,23 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
     }, 30000);
 
     beforeEach(async () => {
+        // Fresh DTO with new reservationId prevents findByReservationId() returning stale data from previous tests
+        mockTravelBookingDto = {
+            requestId: randomUUID(),
+            userId: 'e2e-user-123',
+            flightOrigin: 'JFK',
+            flightDestination: 'LAX',
+            departureDate: '2026-05-01',
+            returnDate: '2026-05-08',
+            hotelId: 'e2e-hotel-456',
+            checkInDate: '2026-05-01',
+            checkOutDate: '2026-05-08',
+            carPickupLocation: 'LAX Airport',
+            carDropoffLocation: 'LAX Airport',
+            carPickupDate: '2026-05-01',
+            carDropoffDate: '2026-05-08',
+            totalAmount: 3500,
+        };
         // Clear previous test data
         await sagaStateModel.deleteMany({ userId: 'e2e-user-123' });
         const keys = await redis.keys('saga:*');
@@ -206,7 +208,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             const result = await saga.execute(mockTravelBookingDto);
 
             // Verify execution result
-            expect(result.status).toBe('pending');
+            expect(result.status).toBe(SagaStatus.PENDING);
             expect(result.bookingId).toBeDefined();
 
             // Verify MongoDB persistence
@@ -230,18 +232,18 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             console.log(`✅ Distributed lock managed correctly`);
         }, 15000);
 
-        it('should cache in-flight state in Redis', async () => {
+        it('should cache in-active state in Redis', async () => {
             const result = await saga.execute(mockTravelBookingDto);
 
             // Check if state was cached
-            const cachedState = await redis.get(`saga:inflight:${result.bookingId}`);
+            const cachedState = await redis.get(`saga:in-active:${result.bookingId}`);
             expect(cachedState).toBeDefined();
 
             const parsedState = JSON.parse(cachedState!);
             expect(parsedState.userId).toBe('e2e-user-123');
-            expect(parsedState.status).toBe('PENDING');
+            expect(parsedState.status).toBe(SagaStatus.PENDING);
 
-            console.log(`✅ In-flight state cached in Redis`);
+            console.log(`✅ In-active state cached in Redis`);
         }, 15000);
 
         it('should track saga steps in Redis', async () => {
@@ -273,16 +275,23 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             // Make 6 requests quickly (limit is 5 per minute)
             const results = [];
             for (let i = 0; i < 6; i++) {
-                results.push(await saga.execute({ ...mockTravelBookingDto, userId: 'rate-limit-test-user' }));
+                // Unique reservationId per request — prevents idempotency early-return bypassing rate limit
+                results.push(
+                    await saga.execute({
+                        ...mockTravelBookingDto,
+                        userId: 'rate-limit-test-user',
+                        requestId: randomUUID(),
+                    }),
+                );
             }
 
             // First 5 should succeed, 6th should fail
-            const successCount = results.filter(r => r.status === 'pending').length;
-            const failedCount = results.filter(r => r.status === 'failed').length;
+            const successCount = results.filter(r => r.status === SagaStatus.PENDING).length;
+            const failedCount = results.filter(r => r.status === SagaStatus.FAILED).length;
 
             expect(successCount).toBe(5);
             expect(failedCount).toBe(1);
-            expect(results[5].errorMessage).toContain('Rate limit exceeded');
+            expect(results[5].message).toContain('Rate limit exceeded');
 
             // Cleanup
             await sagaStateModel.deleteMany({ userId: 'rate-limit-test-user' });
@@ -346,20 +355,20 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
 
             // Save each reservation ID to MongoDB (simulating what event handlers do atomically)
             await sagaStateRepository.saveConfirmedReservation(
-                bookingId,
                 'flight',
+                bookingId,
                 flightResult.reservationId,
                 'flight_confirmed',
             );
             await sagaStateRepository.saveConfirmedReservation(
-                bookingId,
                 'hotel',
+                bookingId,
                 hotelResult.reservationId,
                 'hotel_confirmed',
             );
             await sagaStateRepository.saveConfirmedReservation(
-                bookingId,
                 'car',
+                bookingId,
                 carResult.reservationId,
                 'car_confirmed',
             );
@@ -389,7 +398,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             const bookingId = executeResult.bookingId;
 
             // Verify Redis data exists
-            const cachedBefore = await redis.get(`saga:inflight:${bookingId}`);
+            const cachedBefore = await redis.get(`saga:in-active:${bookingId}`);
             expect(cachedBefore).toBeDefined();
 
             // Aggregate results
@@ -418,20 +427,20 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
 
             // Save each reservation ID to MongoDB (simulating what event handlers do atomically)
             await sagaStateRepository.saveConfirmedReservation(
-                bookingId,
                 'flight',
+                bookingId,
                 flightResult.reservationId,
                 'flight_confirmed',
             );
             await sagaStateRepository.saveConfirmedReservation(
-                bookingId,
                 'hotel',
+                bookingId,
                 hotelResult.reservationId,
                 'hotel_confirmed',
             );
             await sagaStateRepository.saveConfirmedReservation(
-                bookingId,
                 'car',
+                bookingId,
                 carResult.reservationId,
                 'car_confirmed',
             );
@@ -439,7 +448,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             await saga.aggregateResults(bookingId);
 
             // Verify Redis cleanup
-            const cachedAfter = await redis.get(`saga:inflight:${bookingId}`);
+            const cachedAfter = await redis.get(`saga:in-active:${bookingId}`);
             const stepsAfter = await redis.exists(`saga:steps:${bookingId}`);
             const metadataAfter = await redis.exists(`saga:metadata:${bookingId}`);
 
@@ -492,7 +501,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             const bookingId = executeResult.bookingId;
 
             // Fast read from Redis
-            const redisCached = await sagaCoordinator.getInFlightState(bookingId);
+            const redisCached = await sagaCoordinator.getActiveSagaState(bookingId);
             expect(redisCached).toBeDefined();
             expect(redisCached!.userId).toBe('e2e-user-123');
 
@@ -503,7 +512,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
 
             // Both should have consistent data
             expect(redisCached!.userId).toBe(mongoState!.userId);
-            expect(redisCached!.status).toBe('PENDING');
+            expect(redisCached!.status).toBe(SagaStatus.PENDING);
             expect(mongoState!.status).toBe(SagaStatus.PENDING);
 
             console.log(`✅ Hybrid architecture: Redis cache + MongoDB persistence verified`);
@@ -515,10 +524,10 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             const bookingId = executeResult.bookingId;
 
             // Manually expire Redis cache
-            await redis.del(`saga:inflight:${bookingId}`);
+            await redis.del(`saga:in-active:${bookingId}`);
 
             // Try to get cached state (should return null)
-            const redisState = await sagaCoordinator.getInFlightState(bookingId);
+            const redisState = await sagaCoordinator.getActiveSagaState(bookingId);
             expect(redisState).toBeNull();
 
             // MongoDB should still have the data
@@ -536,7 +545,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
 
             // Step 1: Execute saga
             const executeResult = await saga.execute(mockTravelBookingDto);
-            expect(executeResult.status).toBe('pending');
+            expect(executeResult.status).toBe(SagaStatus.PENDING);
             console.log(`  ✓ Step 1: Saga executed (${executeResult.bookingId})`);
 
             // Step 2: Verify pending state in MongoDB
@@ -545,32 +554,33 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             console.log(`  ✓ Step 2: Pending state verified in MongoDB`);
 
             // Step 3: Verify Redis coordination active
-            const cachedState = await redis.get(`saga:inflight:${executeResult.bookingId}`);
+            const cachedState = await redis.get(`saga:in-active:${executeResult.bookingId}`);
             expect(cachedState).toBeDefined();
             console.log(`  ✓ Step 3: Redis coordination active`);
 
             // Step 4: Simulate confirmations — save each reservation ID to MongoDB
             // (in production this is done atomically by each service's confirm*Reservation method)
             await sagaStateRepository.saveConfirmedReservation(
-                executeResult.bookingId,
                 'flight',
+                executeResult.bookingId,
                 'fl-123',
                 'flight_confirmed',
             );
             await sagaStateRepository.saveConfirmedReservation(
-                executeResult.bookingId,
                 'hotel',
+                executeResult.bookingId,
                 'ht-456',
                 'hotel_confirmed',
             );
             await sagaStateRepository.saveConfirmedReservation(
-                executeResult.bookingId,
                 'car',
+                executeResult.bookingId,
                 'cr-789',
                 'car_confirmed',
             );
-            // const aggregateResult = await saga.aggregateResults(executeResult.bookingId);
-            // expect(aggregateResult.status).toBe('confirmed');
+            // Uncomment: car field mapping is now fixed (saveConfirmedReservation 'car' → carRentalReservationId)
+            const aggregateResult = await saga.aggregateResults(executeResult.bookingId);
+            expect(aggregateResult.status).toBe('confirmed');
             console.log(`  ✓ Step 4: Results aggregated successfully`);
 
             // Step 5: Verify final confirmed state in MongoDB
@@ -582,7 +592,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             console.log(`  ✓ Step 5: Confirmed state persisted in MongoDB`);
 
             // Step 6: Verify Redis cleanup
-            const cleanedCache = await redis.get(`saga:inflight:${executeResult.bookingId}`);
+            const cleanedCache = await redis.get(`saga:in-active:${executeResult.bookingId}`);
             expect(cleanedCache).toBeNull();
             console.log(`  ✓ Step 6: Redis coordination data cleaned`);
 
@@ -596,7 +606,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
         let eventBus2: EventBus;
         let sagaStateModel2: Model<TravelBookingSagaState>;
         let redis2: Redis;
-        let notificationService: BookingNotificationService;
+        let notificationService: TravelBookingNotificationService;
 
         beforeAll(async () => {
             console.log('🚀 Setting up event-driven E2E test module...');
@@ -621,11 +631,12 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
                     CarRentalService,
                     TravelBookingSagaStateRepository,
                     SagaCoordinator,
-                    BookingNotificationService,
+                    TravelBookingNotificationService,
                     // Real event handlers — JOIN POINT logic runs inside the services
                     TravelBookingFlightReservationHandler,
                     TravelBookingHotelReservationHandler,
                     TravelBookingCarRentalReservationHandler,
+                    Logger,
                     {
                         provide: BILLING_BROKER_CLIENT,
                         useValue: { emit: jest.fn().mockResolvedValue(undefined) },
@@ -643,13 +654,13 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             jest.spyOn(flightSvc, 'makeReservation').mockResolvedValue({
                 reservationId: 'mock-flight-' + Date.now(),
                 confirmationCode: 'FL-MOCK',
-                status: 'confirmed',
+                status: SagaStatus.CONFIRMED,
                 amount: 1500,
             });
             jest.spyOn(hotelSvc, 'makeReservation').mockResolvedValue({
                 reservationId: 'mock-hotel-' + Date.now(),
                 confirmationCode: 'HT-MOCK',
-                status: 'confirmed',
+                status: SagaStatus.CONFIRMED,
                 amount: 1800,
                 checkInDate: '2026-05-01',
                 checkOutDate: '2026-05-08',
@@ -659,7 +670,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             jest.spyOn(carSvc, 'makeReservation').mockResolvedValue({
                 reservationId: 'mock-car-' + Date.now(),
                 confirmationCode: 'CR-MOCK',
-                status: 'confirmed',
+                status: SagaStatus.CONFIRMED,
                 amount: 200,
             });
 
@@ -669,7 +680,9 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             sagaStateModel2 = moduleFixture2.get<Model<TravelBookingSagaState>>(
                 getModelToken(TravelBookingSagaState.name),
             );
-            notificationService = moduleFixture2.get<BookingNotificationService>(BookingNotificationService);
+            notificationService = moduleFixture2.get<TravelBookingNotificationService>(
+                TravelBookingNotificationService,
+            );
 
             console.log('✅ Event-driven test module initialized');
         }, 60000);
@@ -693,13 +706,13 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
 
             // Step 1: Execute saga — persists PENDING state, emits broker messages
             const executeResult = await saga2.execute(mockTravelBookingDto);
-            expect(executeResult.status).toBe('pending');
+            expect(executeResult.status).toBe(SagaStatus.PENDING);
             const bookingId = executeResult.bookingId;
             console.log(`  ✓ Step 1: Saga executed → bookingId: ${bookingId}`);
 
             // Step 2: Subscribe to BookingNotificationService BEFORE publishing events
             //         so we don't miss the notification if handlers are very fast
-            const confirmationPromise = new Promise<BookingNotification>((resolve, reject) => {
+            const confirmationPromise = new Promise<TravelBookingNotification>((resolve, reject) => {
                 const subscription = notificationService.getBookingStream(bookingId).subscribe({
                     next: notification => {
                         subscription.unsubscribe();
@@ -769,7 +782,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             console.log(`  ✓ Step 5: MongoDB state → CONFIRMED with all three reservation IDs`);
 
             // Step 6: Verify Redis coordination data was cleaned up by aggregateResults()
-            const cachedAfter = await redis2.get(`saga:inflight:${bookingId}`);
+            const cachedAfter = await redis2.get(`saga:in-active:${bookingId}`);
             const stepsAfter = await redis2.exists(`saga:steps:${bookingId}`);
             expect(cachedAfter).toBeNull();
             expect(stepsAfter).toBe(0);

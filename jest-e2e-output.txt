@@ -1,0 +1,324 @@
+  console.log
+    ≡ƒÜÇ Starting E2E Test Setup...
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:89:17)
+
+  console.log
+    Γ£à Docker services are running
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:103:21)
+
+  console.log
+    Γ£à Redis connected
+
+      at EventEmitter.<anonymous> (src/modules/cache/cache.redis.module.ts:42:51)
+
+  console.log
+    Γ£à Redis connection established successful
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:163:17)
+
+  console.log
+    Γ£à NestJS application initialized
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:170:17)
+
+  console.log
+
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:171:17)
+
+  console.log
+    Γ£à Saga state persisted to MongoDB: TRV-1771662022374-JE659623Q
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:219:21)
+
+  console.log
+    Γ£à Distributed lock managed correctly
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:229:21)
+
+  console.log
+    Γ£à Saga steps tracked in Redis
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:258:21)
+
+  console.log
+    Γ£à Saga added to pending queue
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:268:21)
+
+  console.log
+    Γ£à Distributed lock prevents concurrent execution
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:312:21)
+
+(node:3036) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3036) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+(node:3036) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+[Nest] 3036  - 21/02/2026, 10:20:22   ERROR [TravelBookingSaga] Γ¥î Failed to aggregate results: Incomplete reservation IDs for booking TRV-1771662022551-2A5D87O9N: flight=flight-9854f0a1-8ae4-4d40-bbca-175d2fa8839b, hotel=hotel-f7761b93-19a6-42ba-b265-bb58d2a0e6fd, car=undefined
+[Nest] 3036  - 21/02/2026, 10:20:22   ERROR [TravelBookingSagaStateRepository] Setting error for booking TRV-1771662022551-2A5D87O9N: Incomplete reservation IDs for booking TRV-1771662022551-2A5D87O9N: flight=flight-9854f0a1-8ae4-4d40-bbca-175d2fa8839b, hotel=hotel-f7761b93-19a6-42ba-b265-bb58d2a0e6fd, car=undefined
+(node:3036) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+(node:3036) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+(node:3036) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+(node:3036) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+[Nest] 3036  - 21/02/2026, 10:20:22   ERROR [TravelBookingSaga] Γ¥î Failed to aggregate results: Incomplete reservation IDs for booking TRV-1771662022551-2A5D87O9N: flight=flight-bb814c3d-9cd4-49b6-8d51-6f62a6b3807c, hotel=hotel-86165bb8-e3ba-4d4a-bbf7-6910d0854664, car=undefined
+[Nest] 3036  - 21/02/2026, 10:20:22   ERROR [TravelBookingSagaStateRepository] Setting error for booking TRV-1771662022551-2A5D87O9N: Incomplete reservation IDs for booking TRV-1771662022551-2A5D87O9N: flight=flight-bb814c3d-9cd4-49b6-8d51-6f62a6b3807c, hotel=hotel-86165bb8-e3ba-4d4a-bbf7-6910d0854664, car=undefined
+(node:3036) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+  console.log
+    ≡ƒöä Testing complete saga lifecycle...
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:534:21)
+
+  console.log
+    ≡ƒÜÇ Setting up event-driven E2E test module...
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:601:21)
+
+  console.log
+    Γ£à Event-driven test module initialized
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:676:21)
+
+  console.log
+    Γ£à Redis connected
+
+      at EventEmitter.<anonymous> (src/modules/cache/cache.redis.module.ts:42:51)
+
+  console.log
+    ≡ƒöä Testing event-driven saga lifecycle...
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:694:21)
+
+  console.log
+    ≡ƒº╣ Redis disconnected
+
+      at RedisModule.onModuleDestroy (src/modules/cache/cache.redis.module.ts:67:17)
+
+  console.log
+    ≡ƒöî Redis connection closed
+
+      at EventEmitter.<anonymous> (src/modules/cache/cache.redis.module.ts:50:49)
+
+  console.log
+    ≡ƒº╣ Cleaning up E2E Test...
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:175:17)
+
+  console.log
+    Γ£à MongoDB test data cleaned
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:179:17)
+
+  console.log
+    Γ£à Redis test data cleaned
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:186:17)
+
+  console.log
+    ≡ƒº╣ Redis disconnected
+
+      at RedisModule.onModuleDestroy (src/modules/cache/cache.redis.module.ts:67:17)
+
+  console.log
+    ≡ƒöî Redis connection closed
+
+      at EventEmitter.<anonymous> (src/modules/cache/cache.redis.module.ts:50:49)
+
+  console.log
+    Γ£à Connections closed
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:191:17)
+
+FAIL tests/billing/travel-booking.saga.e2e.spec.ts (9.784 s)
+  TravelBookingSaga E2E (Redis + MongoDB)
+    Complete Saga Flow with Real Infrastructure
+      ΓêÜ should execute saga and persist state in MongoDB (69 ms)
+      ΓêÜ should create distributed lock in Redis during execution (31 ms)
+      ├ù should cache in-active state in Redis (22 ms)
+      ΓêÜ should track saga steps in Redis (32 ms)
+      ΓêÜ should add saga to pending queue in Redis (24 ms)
+      ├ù should enforce rate limiting across multiple requests (49 ms)
+      ΓêÜ should prevent concurrent execution with distributed lock (118 ms)
+    Aggregate Results with Real Infrastructure
+      ├ù should aggregate results and update MongoDB state (40 ms)
+      ├ù should cleanup Redis data after successful aggregation (35 ms)
+    Error Scenarios with Real Infrastructure
+      ├ù should persist error state in MongoDB on failure (10 ms)
+      ├ù should set error metadata in Redis on failure (8 ms)
+    Hybrid MongoDB + Redis Architecture
+      ├ù should use Redis cache for fast reads, MongoDB for persistence (8 ms)
+      ├ù should fallback to MongoDB when Redis cache expires (13 ms)
+    Real-World Saga Lifecycle
+      ├ù should complete full saga lifecycle: execute ΓåÆ pending ΓåÆ aggregate ΓåÆ confirmed (10 ms)
+    Event-Driven Saga Lifecycle (Real Event Handlers, No Manual aggregateResults)
+      ├ù should complete saga via real event handlers: execute ΓåÆ publish events ΓåÆ handlers fire JOIN POINT ΓåÆ confirmed (64 ms)
+
+  ΓùÅ TravelBookingSaga E2E (Redis + MongoDB) ΓÇ║ Complete Saga Flow with Real Infrastructure ΓÇ║ should cache in-active state in Redis
+
+    TypeError: Cannot read properties of null (reading 'userId')
+
+      238 |
+      239 |             const parsedState = JSON.parse(cachedState!);
+    > 240 |             expect(parsedState.userId).toBe('e2e-user-123');
+          |                                ^
+      241 |             expect(parsedState.status).toBe(SagaStatus.PENDING);
+      242 |
+      243 |             console.log(`Γ£à In-active state cached in Redis`);
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:240:32)
+
+  ΓùÅ TravelBookingSaga E2E (Redis + MongoDB) ΓÇ║ Complete Saga Flow with Real Infrastructure ΓÇ║ should enforce rate limiting across multiple requests
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 5
+    Received: 6
+
+      280 |             const failedCount = results.filter(r => r.status === 'failed').length;
+      281 |
+    > 282 |             expect(successCount).toBe(5);
+          |                                  ^
+      283 |             expect(failedCount).toBe(1);
+      284 |             expect(results[5].errorMessage).toContain('Rate limit exceeded');
+      285 |
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:282:34)
+
+  ΓùÅ TravelBookingSaga E2E (Redis + MongoDB) ΓÇ║ Aggregate Results with Real Infrastructure ΓÇ║ should aggregate results and update MongoDB state
+
+    Incomplete reservation IDs for booking TRV-1771662022551-2A5D87O9N: flight=flight-9854f0a1-8ae4-4d40-bbca-175d2fa8839b, hotel=hotel-f7761b93-19a6-42ba-b265-bb58d2a0e6fd, car=undefined
+
+      280 |
+      281 |             if (!flightReservationId || !hotelReservationId || !carRentalReservationId) {
+    > 282 |                 throw new Error(
+          |                       ^
+      283 |                     `Incomplete reservation IDs for booking ${bookingId}: ` +
+      284 |                         `flight=${flightReservationId}, hotel=${hotelReservationId}, car=${carRentalReservationId}`,
+      285 |                 );
+
+      at TravelBookingSaga.aggregateResults (src/modules/billing/sagas/travel-booking.saga.ts:282:23)
+      at async Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:367:37)
+
+  ΓùÅ TravelBookingSaga E2E (Redis + MongoDB) ΓÇ║ Aggregate Results with Real Infrastructure ΓÇ║ should cleanup Redis data after successful aggregation
+
+    Incomplete reservation IDs for booking TRV-1771662022551-2A5D87O9N: flight=flight-bb814c3d-9cd4-49b6-8d51-6f62a6b3807c, hotel=hotel-86165bb8-e3ba-4d4a-bbf7-6910d0854664, car=undefined
+
+      280 |
+      281 |             if (!flightReservationId || !hotelReservationId || !carRentalReservationId) {
+    > 282 |                 throw new Error(
+          |                       ^
+      283 |                     `Incomplete reservation IDs for booking ${bookingId}: ` +
+      284 |                         `flight=${flightReservationId}, hotel=${hotelReservationId}, car=${carRentalReservationId}`,
+      285 |                 );
+
+      at TravelBookingSaga.aggregateResults (src/modules/billing/sagas/travel-booking.saga.ts:282:23)
+      at async Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:438:13)
+
+  ΓùÅ TravelBookingSaga E2E (Redis + MongoDB) ΓÇ║ Error Scenarios with Real Infrastructure ΓÇ║ should persist error state in MongoDB on failure
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "E2E Broker Error"
+    Received string:    "Incomplete reservation IDs for booking TRV-1771662022551-2A5D87O9N: flight=flight-bb814c3d-9cd4-49b6-8d51-6f62a6b3807c, hotel=hotel-86165bb8-e3ba-4d4a-bbf7-6910d0854664, car=undefined"
+
+      461 |             // Verify failure result
+      462 |             expect(result.status).toBe('failed');
+    > 463 |             expect(result.message).toContain('E2E Broker Error');
+          |                                    ^
+      464 |
+      465 |             // Verify MongoDB error state
+      466 |             const errorState = await sagaStateModel.findOne({ bookingId: result.bookingId });
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:463:36)
+
+  ΓùÅ TravelBookingSaga E2E (Redis + MongoDB) ΓÇ║ Error Scenarios with Real Infrastructure ΓÇ║ should set error metadata in Redis on failure
+
+    expect(received).toContain(expected) // indexOf
+
+    Matcher error: received value must not be null nor undefined
+
+    Received has value: undefined
+
+      479 |             // Verify Redis error metadata
+      480 |             const metadata = await redis.hgetall(`saga:metadata:${result.bookingId}`);
+    > 481 |             expect(metadata.error).toContain('E2E Redis Metadata Test');
+          |                                    ^
+      482 |
+      483 |             console.log(`Γ£à Error metadata set in Redis`);
+      484 |         }, 15000);
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:481:36)
+
+  ΓùÅ TravelBookingSaga E2E (Redis + MongoDB) ΓÇ║ Hybrid MongoDB + Redis Architecture ΓÇ║ should use Redis cache for fast reads, MongoDB for persistence
+
+    TypeError: Cannot read properties of null (reading 'userId')
+
+      494 |             const redisCached = await sagaCoordinator.getActiveSagaState(bookingId);
+      495 |             expect(redisCached).toBeDefined();
+    > 496 |             expect(redisCached!.userId).toBe('e2e-user-123');
+          |                                 ^
+      497 |
+      498 |             // Durable read from MongoDB
+      499 |             const mongoState = await sagaStateRepository.findByBookingId(bookingId);
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:496:33)
+
+  ΓùÅ TravelBookingSaga E2E (Redis + MongoDB) ΓÇ║ Hybrid MongoDB + Redis Architecture ΓÇ║ should fallback to MongoDB when Redis cache expires
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "pending"
+    Received: "failed"
+
+      524 |             const mongoState = await sagaStateRepository.findByBookingId(bookingId);
+      525 |             expect(mongoState).toBeDefined();
+    > 526 |             expect(mongoState!.status).toBe(SagaStatus.PENDING);
+          |                                        ^
+      527 |
+      528 |             console.log(`Γ£à MongoDB fallback works when Redis cache expires`);
+      529 |         }, 15000);
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:526:40)
+
+  ΓùÅ TravelBookingSaga E2E (Redis + MongoDB) ΓÇ║ Real-World Saga Lifecycle ΓÇ║ should complete full saga lifecycle: execute ΓåÆ pending ΓåÆ aggregate ΓåÆ confirmed
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "pending"
+    Received: "failed"
+
+      536 |             // Step 1: Execute saga
+      537 |             const executeResult = await saga.execute(mockTravelBookingDto);
+    > 538 |             expect(executeResult.status).toBe(SagaStatus.PENDING);
+          |                                          ^
+      539 |             console.log(`  Γ£ô Step 1: Saga executed (${executeResult.bookingId})`);
+      540 |
+      541 |             // Step 2: Verify pending state in MongoDB
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:538:42)
+
+  ΓùÅ TravelBookingSaga E2E (Redis + MongoDB) ΓÇ║ Event-Driven Saga Lifecycle (Real Event Handlers, No Manual aggregateResults) ΓÇ║ should complete saga via real event handlers: execute ΓåÆ publish events ΓåÆ handlers fire JOIN POINT ΓåÆ confirmed
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "pending"
+    Received: "failed"
+
+      696 |             // Step 1: Execute saga ΓÇö persists PENDING state, emits broker messages
+      697 |             const executeResult = await saga2.execute(mockTravelBookingDto);
+    > 698 |             expect(executeResult.status).toBe(SagaStatus.PENDING);
+          |                                          ^
+      699 |             const bookingId = executeResult.bookingId;
+      700 |             console.log(`  Γ£ô Step 1: Saga executed ΓåÆ bookingId: ${bookingId}`);
+      701 |
+
+      at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:698:42)
+
+Test Suites: 1 failed, 1 total
+Tests:       10 failed, 5 passed, 15 total
+Snapshots:   0 total
+Time:        9.926 s, estimated 323 s
+Ran all test suites matching /tests\\billing\\travel-booking.saga.e2e.spec.ts/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

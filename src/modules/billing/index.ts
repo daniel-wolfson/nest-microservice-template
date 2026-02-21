@@ -49,10 +49,7 @@ export { InvoiceCreatedEvent } from './events/impl/invoice-created.event';
 export { OrderCreatedEvent } from './events/impl/order-created.event';
 
 // State Machine
-export {
-    TransactionStateMachine,
-    TransactionState as FSMTransactionState,
-} from './state-machines/transaction.state-machine';
+export { TransactionStateMachine, TransactionState as FSMTransactionState } from './sagas/transaction.state-machine';
 
 // Config
 export { default as billingConfig } from './config/billing.config';

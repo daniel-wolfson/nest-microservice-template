@@ -40,7 +40,7 @@ export class CompensationFailedHandler implements IEventHandler<CompensationFail
         //   errorStack: event.errorStack,
         //   timestamp: event.timestamp,
         //   retryCount: event.retryCount,
-        //   status: 'pending',
+        //   status: SagaStatus.PENDING,
         // });
 
         // 2. Send alert to operations team

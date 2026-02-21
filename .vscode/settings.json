@@ -40,5 +40,8 @@
     ],
     "commentTranslate.hover.enabled": true,
     "commentTranslate.browse.mode": "inplace",
-    "commentTranslate.source": "Copilot"
+    "commentTranslate.source": "Copilot",
+    "jest.autoRun": "off",
+    "jest.jestCommandLine": "yarn test --",
+    "debug.javascript.autoAttachFilter": "disabled"
 }

@@ -4,9 +4,10 @@ import { IReservationConfirmResult } from './reservation-confirm-result.interfac
 import { TravelBookingSagaStateRepository } from '../sagas/travel-booking-saga-state.repository';
 import { SagaCoordinator } from '../sagas/saga-coordinator.service';
 import { TravelBookingSaga } from '../sagas/travel-booking.saga';
-import { BookingNotificationService } from './booking-notification.service';
+import { TravelBookingNotificationService } from '../webhooks_sse/travel-booking-notification.service';
 import { ApiHelper } from '@/modules/helpers/helper.service';
 import { IReservationService } from './reservation-service.inteface';
+import { SagaStatus } from '../sagas/saga-status.enum';
 const ALL_CONFIRMATION_STEPS = ['flight_confirmed', 'hotel_confirmed', 'car_confirmed'];
 
 /**
@@ -24,7 +25,7 @@ export class CarRentalService implements IReservationService {
         private readonly sagaCoordinator: SagaCoordinator,
         @Inject(forwardRef(() => TravelBookingSaga))
         private readonly saga: TravelBookingSaga,
-        private readonly notificationService: BookingNotificationService,
+        private readonly notificationService: TravelBookingNotificationService,
     ) {}
 
     /**
@@ -44,7 +45,7 @@ export class CarRentalService implements IReservationService {
         const result: IReservationConfirmResult = {
             reservationId,
             confirmationCode,
-            status: 'confirmed',
+            status: SagaStatus.CONFIRMED,
             amount: dto.amount,
         };
 
@@ -67,8 +68,8 @@ export class CarRentalService implements IReservationService {
             this.logger.log(`🚗 Confirming car rental reservation ${reservationId} for booking ${bookingId}`);
 
             const updatedState = await this.sagaStateRepository.saveConfirmedReservation(
-                bookingId,
                 'car',
+                bookingId,
                 reservationId,
                 'car_confirmed',
             );
@@ -113,7 +114,7 @@ export class CarRentalService implements IReservationService {
         }
 
         // Mark as cancelled
-        reservation.status = 'pending'; // In real system, this would be 'cancelled'
+        reservation.status = SagaStatus.CONFIRMED; // In real system, this would be 'cancelled'
         this.reservations.delete(reservationId);
 
         this.logger.log(`Car rental reservation ${reservationId} cancelled successfully`);

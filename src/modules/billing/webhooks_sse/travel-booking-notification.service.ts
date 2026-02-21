@@ -4,16 +4,16 @@ import { Subject, Observable } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { TravelBookingResponseDto } from '../dto/booking-data.dto';
 
-export interface BookingNotification {
+export interface TravelBookingNotification {
     bookingId: string;
     status: 'confirmed' | 'failed';
     result?: TravelBookingResponseDto;
     error?: string;
-    timestamp: Date;
+    timestamp: number;
 }
 
 /**
- * Booking Notification Service
+ * Travel Booking Notification Service
  *
  * Responsible for notifying clients about booking completion via two channels:
  *
@@ -30,11 +30,11 @@ export interface BookingNotification {
  * once flight_confirmed + hotel_confirmed + car_confirmed are all present.
  */
 @Injectable()
-export class BookingNotificationService implements OnModuleDestroy {
-    private readonly logger = new Logger(BookingNotificationService.name);
+export class TravelBookingNotificationService implements OnModuleDestroy {
+    private readonly logger = new Logger(TravelBookingNotificationService.name);
 
     /** RxJS Subject that powers SSE streams */
-    private readonly bookingEvents$ = new Subject<BookingNotification>();
+    private readonly bookingEvents$ = new Subject<TravelBookingNotification>();
 
     /** bookingId → webhookUrl registry */
     private readonly webhookRegistry = new Map<string, string>();
@@ -45,31 +45,36 @@ export class BookingNotificationService implements OnModuleDestroy {
         this.bookingEvents$.complete();
     }
 
-    // ─── WEBHOOK REGISTRY ────────────────────────────────────────────────────
-
+    /** WEBHOOK REGISTRY
+     * Registers a webhook URL for a specific booking ID.
+     * @param bookingId - The ID of the booking for which to register the webhook
+     * @param webhookUrl - The URL to which webhook notifications should be sent
+     */
     registerWebhook(bookingId: string, webhookUrl: string): void {
         this.webhookRegistry.set(bookingId, webhookUrl);
         this.logger.log(`🔗 Webhook registered for booking ${bookingId} → ${webhookUrl}`);
     }
 
-    // ─── SSE STREAM ──────────────────────────────────────────────────────────
-
-    /**
+    /** SSE STREAM
      * Returns an Observable that emits the single notification for this booking.
      * Used by BookingSseController to create per-client SSE streams.
      */
-    getBookingStream(bookingId: string): Observable<BookingNotification> {
+    getBookingStream(bookingId: string): Observable<TravelBookingNotification> {
         return this.bookingEvents$.asObservable().pipe(filter(event => event.bookingId === bookingId));
     }
 
-    // ─── NOTIFY CONFIRMED ────────────────────────────────────────────────────
-
+    /** BOOKING CONFIRMED
+     * Notify clients that the booking has been confirmed. This is called from the saga's completion flow once all steps are successful.
+     * It emits a 'confirmed' event to SSE listeners and sends a webhook with the result.
+     * @param bookingId - The ID of the booking that was confirmed
+     * @param result - The result object containing booking details
+     */
     async notifyBookingConfirmed(bookingId: string, result: TravelBookingResponseDto): Promise<void> {
-        const notification: BookingNotification = {
+        const notification: TravelBookingNotification = {
             bookingId,
             status: 'confirmed',
             result,
-            timestamp: new Date(),
+            timestamp: new Date().getTime(),
         };
 
         // Push to all SSE listeners
@@ -80,14 +85,18 @@ export class BookingNotificationService implements OnModuleDestroy {
         await this.sendWebhook(notification);
     }
 
-    // ─── NOTIFY FAILED ────────────────────────────────────────────────────
-
+    /** BOOKING FAILED
+     * Notify clients that the booking has failed. This can be called from the saga's compensation flow if any step fails.
+     * It emits a 'failed' event to SSE listeners and sends a webhook with the error message.
+     * @param bookingId - The ID of the booking that failed
+     * @param error - A string describing the error that caused the failure
+     */
     async notifyBookingFailed(bookingId: string, error: string): Promise<void> {
-        const notification: BookingNotification = {
+        const notification: TravelBookingNotification = {
             bookingId,
             status: 'failed',
             error,
-            timestamp: new Date(),
+            timestamp: new Date().getTime(),
         };
 
         this.bookingEvents$.next(notification);
@@ -96,9 +105,13 @@ export class BookingNotificationService implements OnModuleDestroy {
         await this.sendWebhook(notification);
     }
 
-    // ─── INTERNAL: SEND WEBHOOK ───────────────────────────────────────────────
-
-    private async sendWebhook(notification: BookingNotification): Promise<void> {
+    /** SEND WEBHOOK
+     * Sends a webhook notification to the registered URL for this booking, if any.
+     * The payload includes the bookingId, status, and either the result (for confirmed) or error message (for failed).
+     * After sending, it logs the outcome and removes the webhook from the registry to ensure one-shot delivery.
+     * @param notification - The notification object containing bookingId, status, result/error, and timestamp
+     */
+    private async sendWebhook(notification: TravelBookingNotification): Promise<void> {
         const webhookUrl = this.webhookRegistry.get(notification.bookingId);
         if (!webhookUrl) return;
 

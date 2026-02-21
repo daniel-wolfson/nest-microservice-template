@@ -16,7 +16,7 @@ This saga implementation uses a **hybrid approach** combining MongoDB and Redis 
 │  1. Acquire distributed lock (Redis)                        │
 │  2. Check rate limit (Redis)                                │
 │  3. Save persistent state (MongoDB)                         │
-│  4. Cache in-flight state (Redis)                           │
+│  4. Cache in-active state (Redis)                           │
 │  5. Add to pending queue (Redis)                            │
 │  6. Publish events to message broker                        │
 │  7. Track step progress (Redis)                             │
@@ -88,12 +88,12 @@ if (!canProceed) {
 **Redis Key**: `saga:ratelimit:{userId}`  
 **TTL**: 60 seconds
 
-### 3. In-Flight State Cache
+### 3. in-active State Cache
 
 **Purpose**: Fast reads during saga execution (reduce MongoDB load)
 
 ```typescript
-await this.sagaCoordinator.cacheInFlightState(
+await this.sagaCoordinator.cacheActiveSagaState(
     bookingId,
     {
         bookingId,
@@ -104,10 +104,10 @@ await this.sagaCoordinator.cacheInFlightState(
     3600,
 );
 
-const cached = await this.sagaCoordinator.getInFlightState(bookingId);
+const cached = await this.sagaCoordinator.getActiveSagaState(bookingId);
 ```
 
-**Redis Key**: `saga:inflight:{bookingId}`  
+**Redis Key**: `saga:in-active:{bookingId}`  
 **TTL**: 3600 seconds (1 hour)
 
 ### 4. Pending Saga Queue
@@ -200,7 +200,7 @@ await this.sagaCoordinator.setSagaMetadata(
 2. **Redis: Acquire lock**: Prevent duplicate execution
 3. **Redis: Check rate limit**: Max 5 bookings/minute per user
 4. **MongoDB: Save state**: Persist initial saga state
-5. **Redis: Cache state**: Fast in-flight state access
+5. **Redis: Cache state**: Fast in-active state access
 6. **Redis: Add to pending queue**: Monitor stuck sagas
 7. **Publish events**: Emit to message broker
 8. **Redis: Track steps**: Increment step counters
@@ -240,7 +240,7 @@ REDIS_DB=0                    # optional, default 0
 | Data Type        | TTL         | Purpose                |
 | ---------------- | ----------- | ---------------------- |
 | Distributed Lock | 300s (5min) | Prevent duplicate saga |
-| In-flight Cache  | 3600s (1h)  | Fast state reads       |
+| in-active Cache  | 3600s (1h)  | Fast state reads       |
 | Step Progress    | 7200s (2h)  | Debug stuck sagas      |
 | Saga Metadata    | 7200s (2h)  | Error tracking         |
 | Rate Limit       | 60s         | Prevent spam           |
@@ -278,6 +278,35 @@ const count = await sagaCoordinator.getRateLimitCount(userId);
 const progress = await sagaCoordinator.getSagaProgress(bookingId);
 // { hotel_requested: "1", flight_requested: "1", car_requested: "1", aggregated: "1" }
 ```
+
+### Saga verify reservation duplicates
+
+┌─────────────────────────────────────────────────────────────┐
+│ 1. Generating idempotencyKey (from reservationId or hash) │
+└─────────────────────────────┬───────────────────────────────┘
+│
+▼
+┌─────────────────────────────────────────────────────────────┐
+│ 2. MONGODB: findByReservationId(idempotencyKey) │
+│ → Found? Return the existing result ✅ │
+└─────────────────────────────┬───────────────────────────────┘
+│ Not found
+▼
+┌─────────────────────────────────────────────────────────────┐
+│ 3. REDIS: getActiveSagaState(idempotencyKey) │
+│ → Found? Return "pending" status ⚠️ │
+└─────────────────────────────┬───────────────────────────────┘
+│ Not found
+▼
+┌─────────────────────────────────────────────────────────────┐
+│ 4. REDIS: acquireSagaLock(idempotencyKey, 300) │
+│ → Not received? "already in progress" ⚠️ │
+└─────────────────────────────┬───────────────────────────────┘
+│ Got it
+▼
+┌─────────────────────────────────────────────────────────────┐
+│ 5. Generating bookingId, save to MongoDB/Redis │
+└─────────────────────────────────────────────────────────────┘
 
 ## Error Recovery
 

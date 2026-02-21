@@ -1,13 +1,14 @@
 import { REDIS_CLIENT } from '@/modules/cache/cache.redis.module';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import Redis from 'ioredis';
+import { TravelBookingSagaRedisState } from './travel-booking-saga-state.type';
 
 /**
  * SagaCoordinator - Redis-based real-time coordination service
  *
  * Responsibilities:
  * 1. Distributed locks - prevent duplicate saga execution
- * 2. In-flight state cache - fast reads during saga execution
+ * 2. in-active state cache - fast reads during saga execution
  * 3. Step progress tracking - monitor saga completion
  * 4. Pending saga queue - detect stuck sagas for recovery
  * 5. Rate limiting - prevent spam bookings
@@ -20,160 +21,156 @@ import Redis from 'ioredis';
 export class SagaCoordinator {
     private readonly logger = new Logger(SagaCoordinator.name);
 
-    constructor(
-        @Inject(REDIS_CLIENT) private readonly redis: Redis, // ✅ DI injection
-    ) {}
+    constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis) {}
 
     /**
      * 1. DISTRIBUTED LOCK - Prevent duplicate saga execution
-     *
      * Use case: Prevent the same booking from being processed twice
      * if user clicks "Book" button multiple times
      */
-    async acquireSagaLock(bookingId: string, ttlSeconds: number = 300): Promise<boolean> {
-        const lockKey = `saga:lock:${bookingId}`;
+    async acquireSagaLock(requestId: string, ttlSeconds: number = 300): Promise<boolean> {
+        const lockKey = `saga:lock:${requestId}`;
         try {
             // NX = only set if doesn't exist, EX = expiry in seconds
             const result = await this.redis.set(lockKey, Date.now().toString(), 'EX', ttlSeconds, 'NX');
             const acquired = result === 'OK';
 
             if (acquired) {
-                this.logger.log(`🔒 Lock acquired for booking: ${bookingId}`);
+                this.logger.log(`🔒 Lock acquired for booking: ${requestId}`);
             } else {
-                this.logger.warn(`⚠️ Lock already held for booking: ${bookingId}`);
+                this.logger.warn(`⚠️ Lock already held for booking: ${requestId}`);
             }
 
             return acquired;
         } catch (error) {
-            this.logger.error(`❌ Failed to acquire lock for ${bookingId}:`, error);
+            this.logger.error(`❌ Failed to acquire lock for ${requestId}:`, error);
             return false;
         }
     }
 
-    async releaseSagaLock(bookingId: string): Promise<void> {
-        const lockKey = `saga:lock:${bookingId}`;
+    async releaseSagaLock(requestId: string): Promise<void> {
+        const lockKey = `saga:lock:${requestId}`;
         try {
             await this.redis.del(lockKey);
-            this.logger.log(`🔓 Lock released for booking: ${bookingId}`);
+            this.logger.log(`🔓 Lock released for booking: ${requestId}`);
         } catch (error) {
-            this.logger.error(`❌ Failed to release lock for ${bookingId}:`, error);
+            this.logger.error(`❌ Failed to release lock for ${requestId}:`, error);
         }
     }
 
-    /**
-     * Get lock status (for debugging)
-     */
-    async isLocked(bookingId: string): Promise<boolean> {
-        const lockKey = `saga:lock:${bookingId}`;
+    /** Get lock status (for debugging) */
+    async isLocked(requestId: string): Promise<boolean> {
+        const lockKey = `saga:lock:${requestId}`;
         const exists = await this.redis.exists(lockKey);
         return exists === 1;
     }
 
     /**
-     * 2. IN-FLIGHT STATE CACHE - Fast reads during saga execution
-     *
+     * 2. in-active STATE CACHE - Fast reads during saga execution
      * Use case: Cache the current saga state in Redis for fast access
      * while saga is executing. Reduces MongoDB read load.
      * Auto-cleanup with TTL (e.g., 1 hour)
      */
-    async cacheInFlightState(bookingId: string, state: any, ttlSeconds: number = 3600): Promise<void> {
-        const key = `saga:inflight:${bookingId}`;
+    async cacheActiveSagaState(
+        requestId: string,
+        state: TravelBookingSagaRedisState,
+        ttlSeconds: number = 3600,
+    ): Promise<void> {
+        const key = `saga:in-active:${requestId}`;
         try {
             await this.redis.setex(key, ttlSeconds, JSON.stringify(state));
-            this.logger.debug(`💾 Cached in-flight state for booking: ${bookingId}`);
+            this.logger.debug(`💾 Cached in-active state for booking: ${requestId}`);
         } catch (error) {
-            this.logger.error(`❌ Failed to cache state for ${bookingId}:`, error);
+            this.logger.error(`❌ Failed to cache state for ${requestId}:`, error);
         }
     }
 
-    async getInFlightState(bookingId: string): Promise<any | null> {
-        const key = `saga:inflight:${bookingId}`;
+    async getActiveSagaState(requestId: string): Promise<TravelBookingSagaRedisState | null> {
+        const key = `saga:in-active:${requestId}`;
         try {
             const cached = await this.redis.get(key);
             if (cached) {
-                this.logger.debug(`✅ Cache hit for booking: ${bookingId}`);
+                this.logger.debug(`✅ Cache hit for booking: ${requestId}`);
                 return JSON.parse(cached);
             }
-            this.logger.debug(`⚠️ Cache miss for booking: ${bookingId}`);
+            this.logger.debug(`⚠️ Cache miss for booking: ${requestId}`);
             return null;
         } catch (error) {
-            this.logger.error(`❌ Failed to get cached state for ${bookingId}:`, error);
+            this.logger.error(`❌ Failed to get cached state for ${requestId}:`, error);
             return null;
         }
     }
 
-    async clearInFlightState(bookingId: string): Promise<void> {
-        const key = `saga:inflight:${bookingId}`;
+    async clearActiveSagaState(requestId: string): Promise<void> {
+        const key = `saga:in-active:${requestId}`;
         try {
             await this.redis.del(key);
-            this.logger.debug(`🗑️ Cleared in-flight state for booking: ${bookingId}`);
+            this.logger.debug(`🗑️ Cleared in-active state for booking: ${requestId}`);
         } catch (error) {
-            this.logger.error(`❌ Failed to clear state for ${bookingId}:`, error);
+            this.logger.error(`❌ Failed to clear state for ${requestId}:`, error);
         }
     }
 
     /**
      * 3. SAGA STEP COUNTER - Track progress in real-time
-     *
      * Use case: Monitor which steps have been completed
      * Useful for debugging stuck sagas
      */
-    async incrementStepCounter(bookingId: string, step: string): Promise<number> {
-        const key = `saga:steps:${bookingId}`;
+    async incrementStepCounter(requestId: string, step: string): Promise<number> {
+        const key = `saga:steps:${requestId}`;
         try {
             const count = await this.redis.hincrby(key, step, 1);
             await this.redis.expire(key, 7200); // 2 hours TTL
-            this.logger.debug(`📊 Step '${step}' incremented to ${count} for booking: ${bookingId}`);
+            this.logger.debug(`📊 Step '${step}' incremented to ${count} for booking: ${requestId}`);
             return count;
         } catch (error) {
-            this.logger.error(`❌ Failed to increment step counter for ${bookingId}:`, error);
+            this.logger.error(`❌ Failed to increment step counter for ${requestId}:`, error);
             return 0;
         }
     }
 
-    async getSagaProgress(bookingId: string): Promise<Record<string, string>> {
-        const key = `saga:steps:${bookingId}`;
+    async getSagaProgress(requestId: string): Promise<Record<string, string>> {
+        const key = `saga:steps:${requestId}`;
         try {
             const steps = await this.redis.hgetall(key);
             return steps;
         } catch (error) {
-            this.logger.error(`❌ Failed to get saga progress for ${bookingId}:`, error);
+            this.logger.error(`❌ Failed to get saga progress for ${requestId}:`, error);
             return {};
         }
     }
 
-    async clearSagaProgress(bookingId: string): Promise<void> {
-        const key = `saga:steps:${bookingId}`;
+    async clearSagaProgress(requestId: string): Promise<void> {
+        const key = `saga:steps:${requestId}`;
         try {
             await this.redis.del(key);
-            this.logger.debug(`🗑️ Cleared saga progress for booking: ${bookingId}`);
+            this.logger.debug(`🗑️ Cleared saga progress for booking: ${requestId}`);
         } catch (error) {
-            this.logger.error(`❌ Failed to clear saga progress for ${bookingId}:`, error);
+            this.logger.error(`❌ Failed to clear saga progress for ${requestId}:`, error);
         }
     }
 
     /**
      * 4. PENDING SAGA QUEUE - Monitor stuck sagas
-     *
      * Use case: Detect sagas that have been pending for too long
      * and may need manual intervention or auto-retry
      */
-    async addToPendingQueue(bookingId: string, priority?: number): Promise<void> {
+    async addToPendingQueue(requestId: string, priority?: number): Promise<void> {
         const score = priority || Date.now();
         try {
-            await this.redis.zadd('saga:pending', score, bookingId);
-            this.logger.debug(`📥 Added booking ${bookingId} to pending queue`);
+            await this.redis.zadd('saga:pending', score, requestId);
+            this.logger.debug(`📥 Added booking ${requestId} to pending queue`);
         } catch (error) {
-            this.logger.error(`❌ Failed to add ${bookingId} to pending queue:`, error);
+            this.logger.error(`❌ Failed to add ${requestId} to pending queue:`, error);
         }
     }
 
-    async removeFromPendingQueue(bookingId: string): Promise<void> {
+    async removeFromPendingQueue(requestId: string): Promise<void> {
         try {
-            await this.redis.zrem('saga:pending', bookingId);
-            this.logger.debug(`📤 Removed booking ${bookingId} from pending queue`);
+            await this.redis.zrem('saga:pending', requestId);
+            this.logger.debug(`📤 Removed booking ${requestId} from pending queue`);
         } catch (error) {
-            this.logger.error(`❌ Failed to remove ${bookingId} from pending queue:`, error);
+            this.logger.error(`❌ Failed to remove ${requestId} from pending queue:`, error);
         }
     }
 
@@ -242,27 +239,26 @@ export class SagaCoordinator {
 
     /**
      * 6. SAGA METADATA - Store additional coordination data
-     *
      * Use case: Store temporary metadata about the saga
      * (e.g., retry count, last error, worker ID)
      */
-    async setSagaMetadata(bookingId: string, metadata: Record<string, any>, ttlSeconds: number = 3600): Promise<void> {
-        const key = `saga:metadata:${bookingId}`;
+    async setSagaMetadata(requestId: string, metadata: Record<string, any>, ttlSeconds: number = 3600): Promise<void> {
+        const key = `saga:metadata:${requestId}`;
         try {
             await this.redis.hmset(key, metadata);
             await this.redis.expire(key, ttlSeconds);
-            this.logger.debug(`📝 Set metadata for booking: ${bookingId}`);
+            this.logger.debug(`📝 Set metadata for booking: ${requestId}`);
         } catch (error) {
-            this.logger.error(`❌ Failed to set metadata for ${bookingId}:`, error);
+            this.logger.error(`❌ Failed to set metadata for ${requestId}:`, error);
         }
     }
 
-    async getSagaMetadata(bookingId: string): Promise<Record<string, string>> {
-        const key = `saga:metadata:${bookingId}`;
+    async getSagaMetadata(requestId: string): Promise<Record<string, string>> {
+        const key = `saga:metadata:${requestId}`;
         try {
             return await this.redis.hgetall(key);
         } catch (error) {
-            this.logger.error(`❌ Failed to get metadata for ${bookingId}:`, error);
+            this.logger.error(`❌ Failed to get metadata for ${requestId}:`, error);
             return {};
         }
     }
@@ -270,14 +266,14 @@ export class SagaCoordinator {
     /**
      * Cleanup and monitoring utilities
      */
-    async cleanup(bookingId: string): Promise<void> {
-        this.logger.log(`🧹 Cleaning up Redis data for booking: ${bookingId}`);
+    async cleanup(requestId: string): Promise<void> {
+        this.logger.log(`🧹 Cleaning up Redis data for booking request: ${requestId}`);
         await Promise.all([
-            this.releaseSagaLock(bookingId),
-            this.clearInFlightState(bookingId),
-            this.clearSagaProgress(bookingId),
-            this.removeFromPendingQueue(bookingId),
-            this.redis.del(`saga:metadata:${bookingId}`),
+            this.releaseSagaLock(requestId),
+            this.clearActiveSagaState(requestId),
+            this.clearSagaProgress(requestId),
+            this.removeFromPendingQueue(requestId),
+            this.redis.del(`saga:metadata:${requestId}`),
         ]);
     }
 
@@ -290,7 +286,7 @@ export class SagaCoordinator {
             const [pendingSagas, lockKeys, cacheKeys] = await Promise.all([
                 this.redis.zcard('saga:pending'),
                 this.redis.keys('saga:lock:*'),
-                this.redis.keys('saga:inflight:*'),
+                this.redis.keys('saga:in-active:*'),
             ]);
 
             return {

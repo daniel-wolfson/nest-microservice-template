@@ -28,7 +28,7 @@ export class AtMostOnceProducerStrategy<T = any> extends BaseProducerDeliveryStr
             },
             // Idempotence not needed
             idempotent: false,
-            // Can have high in-flight requests for performance
+            // Can have high in-active requests for performance
             maxInFlightRequests: producerSettings.maxInFlightRequests || 10,
         };
 

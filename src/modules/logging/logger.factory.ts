@@ -5,7 +5,7 @@ import { getLoggerStrategy } from './logger.strategy';
 import { StructuredLogger } from '../../common/winston.logger';
 import { ElasticsearchLoggerService } from '../elasticsearch/elasticsearch-logger.service';
 import { ConfigService } from '@nestjs/config';
-import { EnvironmentConfigFactory } from 'src/config/environment.config';
+import { EnvironmentConfigFactory } from '@/config/environment.config';
 
 // Define as const array first (single source of truth)
 const ALLOWED_LOG_LEVELS = ['log', 'error', 'warn', 'debug', 'verbose', 'fatal'];

@@ -23,7 +23,7 @@ export class PrismaService
         let pool: Pool | undefined;
 
         if (!prismaOptions.adapter) {
-            const connectionString = prismaConfig?.datasource?.url ?? process.env.DATABASE_URL;
+            const connectionString = (prismaConfig as any)?.datasource?.url ?? process.env.DATABASE_URL;
 
             if (!connectionString) {
                 throw new Error('DATABASE_URL is required to initialize PrismaClient');

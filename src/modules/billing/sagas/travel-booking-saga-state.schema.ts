@@ -1,28 +1,20 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
+import { SagaStatus } from './saga-status.enum';
 
 export type TravelBookingSagaStateDocument = TravelBookingSagaState & Document;
 
-export enum SagaStatus {
-    PENDING = 'pending',
-    FLIGHT_RESERVED = 'flight_reserved',
-    HOTEL_RESERVED = 'hotel_reserved',
-    CAR_RESERVED = 'car_reserved',
-    PAYMENT_PROCESSED = 'payment_processed',
-    CONFIRMED = 'confirmed',
-    FAILED = 'failed',
-    COMPENSATING = 'compensating',
-    COMPENSATED = 'compensated',
-}
-
 @Schema({ timestamps: true, collection: 'travel_booking_saga_states' })
 export class TravelBookingSagaState {
-    @Prop({ required: true, unique: true }) // Removed 'index: true'
+    /** Confirmed booking reference - the final record ID after successful completion */
+    @Prop({ required: true }) // Removed 'index: true' , unique: true
     bookingId: string;
 
+    /** Saga correlation ID - tracks the entire booking workflow/transaction */
     @Prop({ required: true }) // Removed 'index: true'
-    reservationId: string;
+    requestId: string;
 
+    /** User ID associated with the booking */
     @Prop({ required: true }) // Removed 'index: true'
     userId: string;
 
@@ -57,7 +49,7 @@ export class TravelBookingSagaState {
     metadata?: Record<string, any>;
 
     @Prop({ type: Number })
-    sagaTimestamp: number;
+    timestamp: number;
 
     @Prop({ type: Date, default: Date.now })
     createdAt?: Date;
