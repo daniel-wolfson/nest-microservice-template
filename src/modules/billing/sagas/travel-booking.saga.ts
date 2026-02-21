@@ -189,17 +189,17 @@ export class TravelBookingSaga {
             // saga-execute-step 8: publish hotel reservation request
             await this.billingBrokerClient.emit('reservation.hotel.requested', this.reserveHotel(request));
             this.logger.log(`✅ reservation.hotel.requested event published: ${this.requestId}`);
-            await this.sagaCoordinator.incrementStepCounter(this.bookingId, 'hotel_requested');
+            await this.sagaCoordinator.incrementStepCounter(this.requestId, 'hotel_requested');
 
             // saga-execute-step 9: publish flight reservation request
             await this.billingBrokerClient.emit('reservation.flight.requested', this.reserveFlight(request));
             this.logger.log(`✅ reservation.flight.requested event published: ${this.requestId}`);
-            await this.sagaCoordinator.incrementStepCounter(this.bookingId, 'flight_requested');
+            await this.sagaCoordinator.incrementStepCounter(this.requestId, 'flight_requested');
 
             // saga-execute-step 10: publish car rental reservation request
             await this.billingBrokerClient.emit('reservation.carRental.requested', this.reserveCar(request));
             this.logger.log(`✅ reservation.carRental.requested event published: ${this.requestId}`);
-            await this.sagaCoordinator.incrementStepCounter(this.bookingId, 'car_requested');
+            await this.sagaCoordinator.incrementStepCounter(this.requestId, 'car_requested');
 
             bookingExecutionResult.status = SagaStatus.PENDING;
         } catch (error) {

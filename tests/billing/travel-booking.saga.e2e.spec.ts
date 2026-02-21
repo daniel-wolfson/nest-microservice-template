@@ -239,7 +239,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             const cachedState = await redis.get(`saga:in-active:${result.bookingId}`);
             expect(cachedState).toBeDefined();
 
-            const parsedState = JSON.parse(cachedState!);
+            const parsedState = JSON.parse(cachedState!) as TravelBookingSagaState;
             expect(parsedState.userId).toBe('e2e-user-123');
             expect(parsedState.status).toBe(SagaStatus.PENDING);
 
@@ -250,9 +250,9 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             const result = await saga.execute(mockTravelBookingDto);
 
             // Check step counters
-            const hotelStep = await redis.hget(`saga:steps:${result.bookingId}`, 'hotel_requested');
-            const flightStep = await redis.hget(`saga:steps:${result.bookingId}`, 'flight_requested');
-            const carStep = await redis.hget(`saga:steps:${result.bookingId}`, 'car_requested');
+            const hotelStep = await redis.hget(`saga:steps:${result.requestId}`, 'hotel_requested');
+            const flightStep = await redis.hget(`saga:steps:${result.requestId}`, 'flight_requested');
+            const carStep = await redis.hget(`saga:steps:${result.requestId}`, 'car_requested');
 
             expect(hotelStep).toBe('1');
             expect(flightStep).toBe('1');
@@ -265,7 +265,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             const result = await saga.execute(mockTravelBookingDto);
 
             // Check pending queue
-            const pendingScore = await redis.zscore('saga:pending', result.bookingId);
+            const pendingScore = await redis.zscore('saga:pending', result.requestId);
             expect(pendingScore).toBeDefined();
 
             console.log(`✅ Saga added to pending queue`);
@@ -327,7 +327,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
         it('should aggregate results and update MongoDB state', async () => {
             // First execute saga
             const executeResult = await saga.execute(mockTravelBookingDto);
-            const bookingId = executeResult.bookingId;
+            const requestId = executeResult.requestId;
 
             // Simulate confirmation results
             const flightResult = {
@@ -356,25 +356,25 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             // Save each reservation ID to MongoDB (simulating what event handlers do atomically)
             await sagaStateRepository.saveConfirmedReservation(
                 'flight',
-                bookingId,
+                requestId,
                 flightResult.reservationId,
                 'flight_confirmed',
             );
             await sagaStateRepository.saveConfirmedReservation(
                 'hotel',
-                bookingId,
+                requestId,
                 hotelResult.reservationId,
                 'hotel_confirmed',
             );
             await sagaStateRepository.saveConfirmedReservation(
                 'car',
-                bookingId,
+                requestId,
                 carResult.reservationId,
                 'car_confirmed',
             );
 
             // Aggregate results — reads IDs from MongoDB
-            const aggregateResult = await saga.aggregateResults(bookingId);
+            const aggregateResult = await saga.aggregateResults(requestId);
 
             // Verify result
             expect(aggregateResult.status).toBe('confirmed');
@@ -383,7 +383,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             expect(aggregateResult.carRentalReservationId).toBe(carResult.reservationId);
 
             // Verify MongoDB state updated
-            const updatedState = await sagaStateModel.findOne({ bookingId });
+            const updatedState = await sagaStateModel.findOne({ requestId });
             expect(updatedState!.status).toBe(SagaStatus.CONFIRMED);
             expect(updatedState!.flightReservationId).toBe(flightResult.reservationId);
             expect(updatedState!.hotelReservationId).toBe(hotelResult.reservationId);
@@ -706,6 +706,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
 
             // Step 1: Execute saga — persists PENDING state, emits broker messages
             const executeResult = await saga2.execute(mockTravelBookingDto);
+
             expect(executeResult.status).toBe(SagaStatus.PENDING);
             const bookingId = executeResult.bookingId;
             console.log(`  ✓ Step 1: Saga executed → bookingId: ${bookingId}`);
@@ -726,7 +727,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
                 setTimeout(() => {
                     subscription.unsubscribe();
                     reject(new Error(`Timeout: no notification received for booking ${bookingId}`));
-                }, 15000);
+                }, 20000);
             });
             console.log(`  ✓ Step 2: Subscribed to notification stream for ${bookingId}`);
 

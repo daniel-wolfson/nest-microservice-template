@@ -17,7 +17,6 @@ module.exports = {
     testEnvironment: 'node',
     forceExit: true,
     roots: ['<rootDir>/src/', '<rootDir>/libs/', '<rootDir>/tests/'],
-    testSequencer: '@jest/test-sequencer',
     moduleNameMapper: {
         '^@prisma/client$': '<rootDir>/generated/prisma',
         '#main-entry-point': '<rootDir>/node_modules/.prisma/client/index.js',
