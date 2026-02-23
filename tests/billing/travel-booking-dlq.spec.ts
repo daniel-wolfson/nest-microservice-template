@@ -291,7 +291,7 @@ describe.skip('TravelBookingSaga - Dead Letter Queue', () => {
             // Verify bookingId is in the event
             expect(publishSpy).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    bookingId: result.bookingId,
+                    bookingId: result.requestId,
                     compensationType: 'flight',
                 }),
             );

@@ -19,12 +19,12 @@ export class TravelBookingCarRentalReservationHandler implements IEventHandler<T
     constructor(private readonly carRentalService: CarRentalService, private readonly logger: Logger) {}
 
     async handle(event: TravelBookingCarRentalReservationEvent): Promise<void> {
-        const { bookingId, carRentalReservationId } = event;
+        const { requestId: requestId, carRentalReservationId } = event;
 
         this.logger.log(
-            `🚗 Handling ${TravelBookingCarRentalReservationHandler.name} — bookingId: ${bookingId}, reservationId: ${carRentalReservationId}`,
+            `🚗 Handling ${TravelBookingCarRentalReservationHandler.name} — bookingId: ${requestId}, reservationId: ${carRentalReservationId}`,
         );
 
-        await this.carRentalService.confirmReservation(bookingId, carRentalReservationId);
+        await this.carRentalService.confirmReservation(requestId, carRentalReservationId);
     }
 }

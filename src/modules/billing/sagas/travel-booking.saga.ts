@@ -151,8 +151,6 @@ export class TravelBookingSaga {
 
             // TODO: Generate bookingId ONLY after all duplicate checks pass
             this.bookingId = this.generateBookingId();
-
-            bookingExecutionResult.bookingId = this.bookingId;
             this.logger.log(`Generated new bookingId: ${this.bookingId}`);
 
             // saga-execute-step 5: MONGODB: Save persistent state for audit and recovery
@@ -296,40 +294,40 @@ export class TravelBookingSaga {
         }
     }
 
-    async aggregateResults(bookingId: string): Promise<TravelBookingResponseDto> {
-        this.logger.log(`Aggregating results for booking: ${bookingId}`);
+    async aggregateResults(requestId: string): Promise<TravelBookingResponseDto> {
+        this.logger.log(`Aggregating results for booking: ${requestId}`);
         try {
             // MONGODB: Read state — reservation IDs already saved by event handlers
-            const sagaState = await this.sagaStateRepository.findByBookingId(bookingId);
+            const sagaState = await this.sagaStateRepository.findByBookingId(requestId);
 
             if (!sagaState) {
-                throw new Error(`Saga state not found for booking: ${bookingId}`);
+                throw new Error(`Saga state not found for booking: ${requestId}`);
             }
 
             const { flightReservationId, hotelReservationId, carRentalReservationId } = sagaState;
 
             if (!flightReservationId || !hotelReservationId || !carRentalReservationId) {
                 throw new Error(
-                    `Incomplete reservation IDs for booking ${bookingId}: ` +
+                    `Incomplete reservation IDs for booking ${requestId}: ` +
                         `flight=${flightReservationId}, hotel=${hotelReservationId}, car=${carRentalReservationId}`,
                 );
             }
 
             // MONGODB: Finalize status only — IDs are already persisted
-            await this.sagaStateRepository.updateState(bookingId, {
+            await this.sagaStateRepository.updateState(requestId, {
                 status: SagaStatus.CONFIRMED,
-                completedSteps: ['flight_confirmed', 'hotel_confirmed', 'car_confirmed', 'aggregated'],
+                completedSteps: ['FLIGHT_CONFIRMED', 'HOTEL_CONFIRMED', 'HOTEL_CONFIRMED', 'AGGREGATED'],
             });
 
-            this.logger.log(`✅ Saga state confirmed in MongoDB: ${bookingId}`);
+            this.logger.log(`✅ Saga state confirmed in MongoDB: ${requestId}`);
 
-            await this.sagaCoordinator.incrementStepCounter(bookingId, 'aggregated');
-            await this.sagaCoordinator.removeFromPendingQueue(bookingId);
-            await this.sagaCoordinator.cleanup(bookingId);
-            this.logger.log(`✅ Redis coordination data cleaned up: ${bookingId}`);
+            await this.sagaCoordinator.incrementStepCounter(requestId, 'AGGREGATED');
+            await this.sagaCoordinator.removeFromPendingQueue(requestId);
+            await this.sagaCoordinator.cleanup(requestId);
+            this.logger.log(`✅ Redis coordination data cleaned up: ${requestId}`);
 
             return {
-                bookingId,
+                bookingId: requestId,
                 originalRequest: sagaState.originalRequest as any,
                 flightReservationId,
                 hotelReservationId,
@@ -342,11 +340,11 @@ export class TravelBookingSaga {
             this.logger.error(`❌ Failed to aggregate results: ${errorMessage}`);
 
             // MONGODB: Save error state
-            await this.sagaStateRepository.setError(bookingId, errorMessage);
+            await this.sagaStateRepository.setError(requestId, errorMessage);
 
             // REDIS: Set error metadata (keep for debugging)
             await this.sagaCoordinator.setSagaMetadata(
-                bookingId,
+                requestId,
                 {
                     error: errorMessage,
                     failedAt: Date.now().toString(),

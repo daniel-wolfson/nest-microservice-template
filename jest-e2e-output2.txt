@@ -324,7 +324,7 @@ FAIL tests/billing/travel-booking.saga.e2e.spec.ts (17.739 s)
     Received: "pending"
 
       585 |             // Step 5: Verify final confirmed state in MongoDB
-      586 |             const confirmedState = await sagaStateModel.findOne({ bookingId: executeResult.bookingId });
+      586 |             const confirmedState = await sagaStateModel.findOne({ bookingId: executeresult.requestId });
     > 587 |             expect(confirmedState!.status).toBe(SagaStatus.CONFIRMED);
           |                                            ^
       588 |             expect(confirmedState!.flightReservationId).toBeDefined();

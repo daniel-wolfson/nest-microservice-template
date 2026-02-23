@@ -3,7 +3,7 @@ import { IReservationConfirmResult } from "./reservation-confirm-result.interfac
 
 export interface IReservationService {
     makeReservation(dto: BaseReservationDto): Promise<IReservationConfirmResult>;
-    confirmReservation(bookingId: string, reservationId: string): Promise<void>;
+    confirmReservation(requestId: string, reservationId: string): Promise<void>;
     cancelReservation(reservationId: string): Promise<void>;
     getReservation(reservationId: string): Promise<IReservationConfirmResult | null>;
 }

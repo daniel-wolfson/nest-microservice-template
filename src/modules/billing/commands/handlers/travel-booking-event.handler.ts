@@ -13,7 +13,7 @@ export class TravelBookingHandler implements ICommandHandler<TravelBookingComman
 
         try {
             const result = await this.travelBookingSaga.execute(command.dto);
-            this.logger.log(`Travel booking: ${result.bookingId} status: ${result.status}`);
+            this.logger.log(`Travel booking: ${result.requestId} status: ${result.status}`);
             return result;
         } catch (error: any) {
             this.logger.error(`Failed to execute travel booking: ${error.message}`, error.stack);

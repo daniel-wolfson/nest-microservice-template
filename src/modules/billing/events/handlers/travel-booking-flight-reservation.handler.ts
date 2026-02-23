@@ -19,12 +19,12 @@ export class TravelBookingFlightReservationHandler implements IEventHandler<Trav
     constructor(private readonly flightService: FlightService, private readonly logger: Logger) {}
 
     async handle(event: TravelBookingFlightReservationEvent): Promise<void> {
-        const { bookingId, flightReservationId } = event;
+        const { bookingId: requestId, flightReservationId } = event;
 
         this.logger.log(
-            `✈️ Handling ${TravelBookingFlightReservationHandler.name} — bookingId: ${bookingId}, reservationId: ${flightReservationId}`,
+            `✈️ Handling ${TravelBookingFlightReservationHandler.name} — bookingId: ${requestId}, reservationId: ${flightReservationId}`,
         );
 
-        await this.flightService.confirmReservation(bookingId, flightReservationId);
+        await this.flightService.confirmReservation(requestId, flightReservationId);
     }
 }

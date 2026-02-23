@@ -4,6 +4,31 @@ import Redis, { RedisOptions } from 'ioredis';
 
 export const REDIS_CLIENT = 'REDIS_CLIENT';
 
+/**
+ * Redis Module for NestJS Microservice
+ * 
+ * A global, dynamically configured Redis module that provides a singleton Redis client
+ * instance throughout the application without requiring explicit imports.
+ * 
+ * @remarks
+ * - Uses lazy connection (`lazyConnect: true`) to defer connection establishment
+ * - Implements automatic reconnection strategy with exponential backoff (max 3 retries)
+ * - Handles READONLY errors by triggering reconnection attempts
+ * - Suppresses expected network errors (ECONNRESET, ENOTCONN, ERR_STREAM_DESTROYED) 
+ *   that occur during normal shutdown or test cleanup phases
+ * - Uses `disconnect()` instead of `quit()` in module destruction to avoid protocol
+ *   round-trip delays that cause connection reset errors in shared Redis test scenarios
+ * 
+ * @example
+ * ```typescript
+ * // Inject the Redis client in any service
+ * constructor(@Inject(REDIS_CLIENT) private redis: Redis) {}
+ * ```
+ * 
+ * @see Redis client configuration options from 'ioredis'
+ * 
+ * @throws Will not throw on expected connection errors; unexpected errors are logged
+ */
 @Global() // Makes Redis available everywhere without importing module
 @Module({
     imports: [ConfigModule],

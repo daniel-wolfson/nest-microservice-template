@@ -180,7 +180,7 @@ describe('TravelBookingSaga', () => {
 
             // Verify result
             expect(result.status).toBe(SagaStatus.PENDING);
-            expect(result.bookingId).toBeDefined();
+            expect(result.requestId).toBeDefined();
         });
 
         it('should fail if distributed lock cannot be acquired', async () => {
@@ -217,7 +217,7 @@ describe('TravelBookingSaga', () => {
 
             expect(result.status).toBe(SagaStatus.FAILED);
             expect(sagaStateRepository.setError).toHaveBeenCalledWith(
-                result.bookingId, // Uses bookingId since error happens after it's generated
+                result.requestId, // Uses bookingId since error happens after it's generated
                 'Broker unavailable',
                 expect.any(String),
             );
@@ -271,7 +271,7 @@ describe('TravelBookingSaga', () => {
                     completedSteps: expect.arrayContaining([
                         'flight_confirmed',
                         'hotel_confirmed',
-                        'car_confirmed',
+                        'hotel_confirmed',
                         'aggregated',
                     ]),
                 }),

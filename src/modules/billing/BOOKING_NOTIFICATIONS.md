@@ -69,7 +69,7 @@ calls `saga.aggregateResults()`. The first handler to arrive waits; the last one
 ```
 completedSteps = ['flight_confirmed']           → wait
 completedSteps = ['flight_confirmed', 'hotel_confirmed']  → wait
-completedSteps = ['flight_confirmed', 'hotel_confirmed', 'car_confirmed'] → FIRE ✅
+completedSteps = ['flight_confirmed', 'hotel_confirmed', 'hotel_confirmed'] → FIRE ✅
 ```
 
 Because MongoDB's `$addToSet` is atomic, only one handler will observe all three

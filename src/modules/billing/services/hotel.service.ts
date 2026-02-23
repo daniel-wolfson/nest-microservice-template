@@ -9,7 +9,7 @@ import { ApiHelper } from '@/modules/helpers/helper.service';
 import { IReservationService } from './reservation-service.inteface';
 import { SagaStatus } from '../sagas/saga-status.enum';
 
-const ALL_CONFIRMATION_STEPS = ['flight_confirmed', 'hotel_confirmed', 'car_confirmed'];
+const ALL_CONFIRMATION_STEPS = ['flight_confirmed', 'hotel_confirmed', 'hotel_confirmed'];
 
 /**
  * Hotel Service
@@ -38,7 +38,7 @@ export class HotelService implements IReservationService {
         );
 
         // Simulate API delay AND Simulate 10% failure rate for testing
-        await ApiHelper.simulateDelayOrRandomError(1200, 0.1);
+        //await ApiHelper.simulateDelayOrRandomError(1200, 0.1);
 
         const reservationId = ApiHelper.generateId('HTL');
         const confirmationCode = ApiHelper.generateConfirmationCode();
@@ -68,37 +68,37 @@ export class HotelService implements IReservationService {
      * JOIN POINT. If all three confirmations have arrived, finalizes the saga
      * and notifies the client via SSE / Webhook.
      */
-    async confirmReservation(bookingId: string, reservationId: string): Promise<void> {
+    async confirmReservation(requestId: string, reservationId: string): Promise<void> {
         try {
-            this.logger.log(`🏨 Confirming hotel reservation ${reservationId} for booking ${bookingId}`);
+            this.logger.log(`🏨 Confirming hotel reservation ${reservationId} for booking ${requestId}`);
 
             const updatedState = await this.sagaStateRepository.saveConfirmedReservation(
                 'hotel',
-                bookingId,
+                requestId,
                 reservationId,
                 'hotel_confirmed',
             );
-            await this.sagaCoordinator.incrementStepCounter(bookingId, 'hotel_confirmed');
+            await this.sagaCoordinator.incrementStepCounter(requestId, 'hotel_confirmed');
 
             const completedSteps: string[] = updatedState?.completedSteps ?? [];
             const allConfirmed = ALL_CONFIRMATION_STEPS.every(step => completedSteps.includes(step));
 
             if (!allConfirmed) {
                 const missing = ALL_CONFIRMATION_STEPS.filter(step => !completedSteps.includes(step));
-                this.logger.log(`⏳ Waiting for confirmations: [${missing.join(', ')}] — bookingId: ${bookingId}`);
+                this.logger.log(`⏳ Waiting for confirmations: [${missing.join(', ')}] — bookingId: ${requestId}`);
                 return;
             }
 
-            this.logger.log(`🎯 All confirmations received — triggering aggregation for bookingId: ${bookingId}`);
-            const aggregateResult = await this.saga.aggregateResults(bookingId);
-            this.logger.log(`✅ Saga aggregated — bookingId: ${bookingId}, status: ${aggregateResult.status}`);
-            await this.notificationService.notifyBookingConfirmed(bookingId, aggregateResult);
+            this.logger.log(`🎯 All confirmations received — triggering aggregation for bookingId: ${requestId}`);
+            const aggregateResult = await this.saga.aggregateResults(requestId);
+            this.logger.log(`✅ Saga aggregated — bookingId: ${requestId}, status: ${aggregateResult.status}`);
+            await this.notificationService.notifyBookingConfirmed(requestId, aggregateResult);
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             this.logger.error(
-                `❌ Failed to handle TravelBookingHotelReservationEvent for booking ${bookingId}: ${errorMessage}`,
+                `❌ Failed to handle TravelBookingHotelReservationEvent for booking ${requestId}: ${errorMessage}`,
             );
-            await this.notificationService.notifyBookingFailed(bookingId, errorMessage);
+            await this.notificationService.notifyBookingFailed(requestId, errorMessage);
         }
     }
 

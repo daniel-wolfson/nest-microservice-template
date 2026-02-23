@@ -6,6 +6,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { BookingData, TravelBookingResponseDto } from '../dto/booking-data.dto';
 import { BookTravelCommand } from '../commands/impl/book-travel.command';
 import { TravelBookingNotificationService } from '../webhooks_sse/travel-booking-notification.service';
+import { SagaStatus } from '../sagas/saga-status.enum';
 
 export class RegisterWebhookDto {
     @ApiProperty({
@@ -65,10 +66,12 @@ export class BookingCommandController {
             const command = new BookTravelCommand(dto);
             const result = await this.commandBus.execute<BookTravelCommand, TravelBookingResponseDto>(command);
 
-            if (result.status === 'confirmed') {
-                this.logger.log(`✅ Travel booking successful: ${result.bookingId}`);
+            if (result.status === SagaStatus.CONFIRMED) {
+                this.logger.log(`✅ Travel booking successful: ${result.originalRequest.requestId}`);
             } else {
-                this.logger.warn(`⚠️ Travel booking compensated: ${result.bookingId} - ${result.errorMessage}`);
+                this.logger.warn(
+                    `⚠️ Travel booking compensated: ${result.originalRequest.requestId} - ${result.errorMessage}`,
+                );
             }
 
             return result;

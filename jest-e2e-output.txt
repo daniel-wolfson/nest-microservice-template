@@ -229,7 +229,7 @@ FAIL tests/billing/travel-booking.saga.e2e.spec.ts (9.784 s)
           |                                    ^
       464 |
       465 |             // Verify MongoDB error state
-      466 |             const errorState = await sagaStateModel.findOne({ bookingId: result.bookingId });
+      466 |             const errorState = await sagaStateModel.findOne({ bookingId: result.requestId });
 
       at Object.<anonymous> (tests/billing/travel-booking.saga.e2e.spec.ts:463:36)
 
@@ -242,7 +242,7 @@ FAIL tests/billing/travel-booking.saga.e2e.spec.ts (9.784 s)
     Received has value: undefined
 
       479 |             // Verify Redis error metadata
-      480 |             const metadata = await redis.hgetall(`saga:metadata:${result.bookingId}`);
+      480 |             const metadata = await redis.hgetall(`saga:metadata:${result.requestId}`);
     > 481 |             expect(metadata.error).toContain('E2E Redis Metadata Test');
           |                                    ^
       482 |
@@ -293,7 +293,7 @@ FAIL tests/billing/travel-booking.saga.e2e.spec.ts (9.784 s)
       537 |             const executeResult = await saga.execute(mockTravelBookingDto);
     > 538 |             expect(executeResult.status).toBe(SagaStatus.PENDING);
           |                                          ^
-      539 |             console.log(`  Γ£ô Step 1: Saga executed (${executeResult.bookingId})`);
+      539 |             console.log(`  Γ£ô Step 1: Saga executed (${executeresult.requestId})`);
       540 |
       541 |             // Step 2: Verify pending state in MongoDB
 
@@ -310,7 +310,7 @@ FAIL tests/billing/travel-booking.saga.e2e.spec.ts (9.784 s)
       697 |             const executeResult = await saga2.execute(mockTravelBookingDto);
     > 698 |             expect(executeResult.status).toBe(SagaStatus.PENDING);
           |                                          ^
-      699 |             const bookingId = executeResult.bookingId;
+      699 |             const bookingId = executeresult.requestId;
       700 |             console.log(`  Γ£ô Step 1: Saga executed ΓåÆ bookingId: ${bookingId}`);
       701 |
 
