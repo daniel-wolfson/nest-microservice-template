@@ -1,4 +1,4 @@
-export enum SagaStatus {
+export enum ReservationStatus {
     PENDING = 'PENDING',
     FLIGHT_RESERVED = 'FLIGHT_RESERVED',
     HOTEL_RESERVED = 'HOTEL_RESERVED',

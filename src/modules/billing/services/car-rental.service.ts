@@ -1,14 +1,15 @@
 import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
-import { CarRentalReservationDto } from '../dto/car-rental-reservation.dto';
-import { IReservationConfirmResult } from './reservation-confirm-result.interface';
+import { CarReservationRequest } from '../dto/car-rental-reservation.dto';
 import { TravelBookingSagaStateRepository } from '../sagas/travel-booking-saga-state.repository';
 import { SagaCoordinator } from '../sagas/saga-coordinator.service';
 import { TravelBookingSaga } from '../sagas/travel-booking.saga';
 import { TravelBookingNotificationService } from '../webhooks_sse/travel-booking-notification.service';
 import { ApiHelper } from '@/modules/helpers/helper.service';
-import { IReservationService } from './reservation-service.inteface';
-import { SagaStatus } from '../sagas/saga-status.enum';
-const ALL_CONFIRMATION_STEPS = ['flight_confirmed', 'hotel_confirmed', 'hotel_confirmed'];
+import { ReservationStatus } from '../sagas/saga-status.enum';
+import { ReservationResult } from '../dto/reservation-confirm-result.dto';
+import { IReservationService } from './reservation-service.interface';
+import { ReservationType } from '../sagas/reservation-types.enum';
+const ALL_CONFIRMATION_STEPS = ['FLIGHT_CONFIRMED', 'HOTEL_CONFIRMED', 'CAR_CONFIRMED'];
 
 /**
  * Car Rental Service
@@ -18,7 +19,7 @@ const ALL_CONFIRMATION_STEPS = ['flight_confirmed', 'hotel_confirmed', 'hotel_co
 @Injectable()
 export class CarRentalService implements IReservationService {
     private readonly logger = new Logger(CarRentalService.name);
-    private readonly reservations = new Map<string, IReservationConfirmResult>();
+    private readonly reservations = new Map<string, ReservationResult>();
 
     constructor(
         private readonly sagaStateRepository: TravelBookingSagaStateRepository,
@@ -33,8 +34,8 @@ export class CarRentalService implements IReservationService {
      * Simulates external API call to car rental booking system
      * Higher failure rate to trigger compensation flow
      */
-    async makeReservation(dto: CarRentalReservationDto): Promise<IReservationConfirmResult> {
-        this.logger.log(`Reserving car at ${dto.pickupLocation} for user ${dto.userId}`);
+    async makeReservation(request: CarReservationRequest): Promise<ReservationResult> {
+        this.logger.log(`Reserving car at ${request.pickupLocation} for user ${request.userId}`);
 
         // Simulate API delay AND Simulate 30% failure rate for testing compensation
         await ApiHelper.simulateDelayOrRandomError(1500, 0.3);
@@ -42,11 +43,14 @@ export class CarRentalService implements IReservationService {
         const reservationId = ApiHelper.generateId('CAR');
         const confirmationCode = ApiHelper.generateConfirmationCode();
 
-        const result: IReservationConfirmResult = {
+        const result: ReservationResult = {
+            requestId: request.requestId,
+            userId: request.userId,
             reservationId,
             confirmationCode,
-            status: SagaStatus.CONFIRMED,
-            amount: dto.amount,
+            status: ReservationStatus.CONFIRMED,
+            amount: request.amount,
+            timestamp: new Date().toISOString(),
         };
 
         this.reservations.set(reservationId, result);
@@ -68,12 +72,12 @@ export class CarRentalService implements IReservationService {
             this.logger.log(`🚗 Confirming car rental reservation ${reservationId} for booking ${requestId}`);
 
             const updatedState = await this.sagaStateRepository.saveConfirmedReservation(
-                'car',
+                ReservationType.CAR,
                 requestId,
                 reservationId,
-                'hotel_confirmed',
+                'CAR_CONFIRMED',
             );
-            await this.sagaCoordinator.incrementStepCounter(requestId, 'hotel_confirmed');
+            await this.sagaCoordinator.incrementStepCounter(requestId, 'CAR_CONFIRMED');
 
             const completedSteps: string[] = updatedState?.completedSteps ?? [];
             const allConfirmed = ALL_CONFIRMATION_STEPS.every(step => completedSteps.includes(step));
@@ -114,7 +118,7 @@ export class CarRentalService implements IReservationService {
         }
 
         // Mark as cancelled
-        reservation.status = SagaStatus.CONFIRMED; // In real system, this would be 'cancelled'
+        reservation.status = ReservationStatus.CONFIRMED; // In real system, this would be 'cancelled'
         this.reservations.delete(reservationId);
 
         this.logger.log(`Car rental reservation ${reservationId} cancelled successfully`);
@@ -123,7 +127,7 @@ export class CarRentalService implements IReservationService {
     /**
      * Get reservation details
      */
-    async getReservation(reservationId: string): Promise<IReservationConfirmResult | null> {
+    async getReservation(reservationId: string): Promise<ReservationResult | null> {
         return this.reservations.get(reservationId) || null;
     }
 }

@@ -9,11 +9,11 @@ import {
 import { FlightService } from '../services/flight.service';
 import { HotelService } from '../services/hotel.service';
 import { CarRentalService } from '../services/car-rental.service';
-import { HotelReservationDto } from '../dto/hotel-reservation.dto';
-import { FlightReservationDto } from '../dto/flight-reservation.dto';
-import { CarRentalReservationDto } from '../dto/car-rental-reservation.dto';
+import { FlightReservationRequest } from '../dto/flight-reservation-request.dto';
+import { CarReservationRequest } from '../dto/car-rental-reservation.dto';
 import { plainToClass } from 'class-transformer';
 import { validate } from 'class-validator';
+import { HotelReservationRequest } from '../dto/hotel-reservation.-request.dto';
 
 @Controller()
 export class BookingEventController {
@@ -38,7 +38,7 @@ export class BookingEventController {
             channel.ack(originalMsg);
 
             // Validate DTO
-            const hotelDto = plainToClass(HotelReservationDto, {
+            const hotelDto = plainToClass(HotelReservationRequest, {
                 userId: data.userId,
                 hotelId: data.hotelId,
                 checkInDate: data.checkInDate,
@@ -120,7 +120,7 @@ export class BookingEventController {
             const originalMsg = context.getMessage();
             channel.ack(originalMsg);
 
-            const flightDto = plainToClass(FlightReservationDto, {
+            const flightDto = plainToClass(FlightReservationRequest, {
                 userId: data.userId,
                 origin: data.flightOrigin,
                 destination: data.flightDestination,
@@ -203,7 +203,7 @@ export class BookingEventController {
             const originalMsg = context.getMessage();
             channel.ack(originalMsg);
 
-            const carDto = plainToClass(CarRentalReservationDto, {
+            const carDto = plainToClass(CarReservationRequest, {
                 userId: data.userId,
                 pickupLocation: data.carPickupLocation,
                 dropoffLocation: data.carDropoffLocation,

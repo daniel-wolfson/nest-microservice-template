@@ -6,7 +6,7 @@ import { TravelBookingResponseDto } from '../dto/booking-data.dto';
 
 export interface TravelBookingNotification {
     bookingId: string;
-    status: 'confirmed' | 'failed';
+    status: 'CONFIRMED' | 'failed';
     result?: TravelBookingResponseDto;
     error?: string;
     timestamp: number;
@@ -65,14 +65,14 @@ export class TravelBookingNotificationService implements OnModuleDestroy {
 
     /** BOOKING CONFIRMED
      * Notify clients that the booking has been confirmed. This is called from the saga's completion flow once all steps are successful.
-     * It emits a 'confirmed' event to SSE listeners and sends a webhook with the result.
+     * It emits a 'CONFIRMED' event to SSE listeners and sends a webhook with the result.
      * @param bookingId - The ID of the booking that was confirmed
      * @param result - The result object containing booking details
      */
     async notifyBookingConfirmed(bookingId: string, result: TravelBookingResponseDto): Promise<void> {
         const notification: TravelBookingNotification = {
             bookingId,
-            status: 'confirmed',
+            status: 'CONFIRMED',
             result,
             timestamp: new Date().getTime(),
         };

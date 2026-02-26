@@ -1,15 +1,15 @@
 import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
-import { FlightReservationDto } from '../dto/flight-reservation.dto';
-import { IFlightReservationResult } from '../dto/flight-reservation-result.interface';
+import { FlightReservationRequest } from '../dto/flight-reservation-request.dto';
 import { TravelBookingSagaStateRepository } from '../sagas/travel-booking-saga-state.repository';
 import { SagaCoordinator } from '../sagas/saga-coordinator.service';
 import { TravelBookingSaga } from '../sagas/travel-booking.saga';
 import { TravelBookingNotificationService } from '../webhooks_sse/travel-booking-notification.service';
 import { ApiHelper } from '@/modules/helpers/helper.service';
-import { IReservationService } from './reservation-service.inteface';
-import { SagaStatus } from '../sagas/saga-status.enum';
-
-const ALL_CONFIRMATION_STEPS = ['flight_confirmed', 'hotel_confirmed', 'hotel_confirmed'];
+import { ReservationStatus } from '../sagas/saga-status.enum';
+import { ReservationResult } from '../dto/reservation-confirm-result.dto';
+import { IReservationService } from './reservation-service.interface';
+import { ReservationType } from '../sagas/reservation-types.enum';
+const ALL_CONFIRMATION_STEPS = ['FLIGHT_CONFIRMED', 'HOTEL_CONFIRMED', 'CAR_CONFIRMED'];
 
 /**
  * Flight Service
@@ -18,7 +18,7 @@ const ALL_CONFIRMATION_STEPS = ['flight_confirmed', 'hotel_confirmed', 'hotel_co
 @Injectable()
 export class FlightService implements IReservationService {
     private readonly logger = new Logger(FlightService.name);
-    private readonly reservations = new Map<string, IFlightReservationResult>();
+    private readonly reservations = new Map<string, ReservationResult>();
 
     constructor(
         private readonly sagaStateRepository: TravelBookingSagaStateRepository,
@@ -32,8 +32,8 @@ export class FlightService implements IReservationService {
      * Reserve a flight
      * Simulates external API call to flight booking system
      */
-    async makeReservation(dto: FlightReservationDto): Promise<IFlightReservationResult> {
-        this.logger.log(`Reserving flight from ${dto.origin} to ${dto.destination} for user ${dto.userId}`);
+    async makeReservation(request: FlightReservationRequest): Promise<ReservationResult> {
+        this.logger.log(`Reserving flight from ${request.origin} to ${request.destination} for user ${request.userId}`);
 
         // Simulate API delay AND Simulate 10% failure rate for testing
         await ApiHelper.simulateDelayOrRandomError(1000, 0.1);
@@ -41,11 +41,14 @@ export class FlightService implements IReservationService {
         const reservationId = ApiHelper.generateId('FLT');
         const confirmationCode = ApiHelper.generateConfirmationCode();
 
-        const result: IFlightReservationResult = {
+        const result: ReservationResult = {
+            requestId: request.requestId,
+            userId: request.userId,
             reservationId,
             confirmationCode,
-            status: SagaStatus.PENDING,
-            amount: dto.amount,
+            status: ReservationStatus.CONFIRMED,
+            amount: request.amount,
+            timestamp: new Date().toISOString(),
         };
 
         this.reservations.set(reservationId, result);
@@ -67,12 +70,12 @@ export class FlightService implements IReservationService {
             this.logger.log(`✈️ Confirming flight reservation ${reservationId} for booking ${requestId}`);
 
             const updatedState = await this.sagaStateRepository.saveConfirmedReservation(
-                'flight',
+                ReservationType.FLIGHT,
                 requestId,
                 reservationId,
-                'flight_confirmed',
+                'FLIGHT_CONFIRMED',
             );
-            await this.sagaCoordinator.incrementStepCounter(requestId, 'flight_confirmed');
+            await this.sagaCoordinator.incrementStepCounter(requestId, 'FLIGHT_CONFIRMED');
 
             const completedSteps: string[] = updatedState?.completedSteps ?? [];
             const allConfirmed = ALL_CONFIRMATION_STEPS.every(step => completedSteps.includes(step));
@@ -113,7 +116,7 @@ export class FlightService implements IReservationService {
         }
 
         // Mark as cancelled
-        reservation.status = SagaStatus.PENDING; // In real system, this would be 'cancelled'
+        reservation.status = ReservationStatus.PENDING; // In real system, this would be 'cancelled'
         this.reservations.delete(reservationId);
 
         this.logger.log(`Flight reservation ${reservationId} cancelled successfully`);
@@ -122,7 +125,7 @@ export class FlightService implements IReservationService {
     /**
      * Get reservation details
      */
-    async getReservation(reservationId: string): Promise<IFlightReservationResult | null> {
+    async getReservation(reservationId: string): Promise<ReservationResult | null> {
         return this.reservations.get(reservationId) || null;
     }
 }

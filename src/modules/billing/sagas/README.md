@@ -149,7 +149,7 @@ await this.sagaCoordinator.setSagaMetadata(
     bookingId,
     {
         error: errorMessage,
-        failedAt: Date.now().toString(),
+        failedAt: new Date().toISOString(),
         retryCount: '1',
     },
     7200,

@@ -5,7 +5,7 @@ import { ApiProperty } from '@nestjs/swagger';
  * Base class for all reservation DTOs
  * Contains common properties shared across Flight, Hotel, and Car Rental reservations
  */
-export abstract class BaseReservationDto {
+export abstract class BaseReservation {
     @ApiProperty({ description: 'User ID' })
     @IsString()
     @IsNotEmpty()
@@ -15,4 +15,9 @@ export abstract class BaseReservationDto {
     @IsNumber()
     @Min(0)
     amount: number;
+
+    @ApiProperty({ description: 'Request ID' })
+    @IsString()
+    @IsNotEmpty()
+    requestId: string;
 }

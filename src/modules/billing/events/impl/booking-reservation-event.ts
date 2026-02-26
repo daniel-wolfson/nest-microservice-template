@@ -1,6 +1,6 @@
 export class TravelBookingFlightReservationEvent {
     constructor(
-        public readonly bookingId: string,
+        public readonly requestId: string,
         public readonly userId: string,
         public readonly flightReservationId: string,
         public readonly totalAmount: number,
@@ -20,7 +20,7 @@ export class TravelBookingCarRentalReservationEvent {
 
 export class TravelBookingHotelReservationEvent {
     constructor(
-        public readonly bookingId: string,
+        public readonly requestId: string,
         public readonly userId: string,
         public readonly hotelReservationId: string,
         public readonly totalAmount: number,

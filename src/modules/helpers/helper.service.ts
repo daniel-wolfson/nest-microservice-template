@@ -63,4 +63,19 @@ export class ApiHelper {
         ms = ms ?? ApiHelper.config?.defaultDelay ?? 500; // Default to 500ms if no value is provided
         return new Promise(resolve => setTimeout(resolve, ms));
     }
+
+    /**
+     * Generates a realistic PNR with format validation
+     * Format: 6 characters (excluding 0,1,I,O,A,E,U to avoid confusion)
+     * Combinations: 29^6 = 594,823,321 (~595 million)
+     * Examples: "F7Y9K2", "HK4W8P", "CZ3M5T"
+     */
+    static chars = '23456789BCDFGHJKLMNPQRSTVWXYZ'; // 29 characters
+    static generatePNR(prefix: 'FLT' | 'FLIGHT' | 'HTL' | 'HOTEL' | 'CAR'): string {
+        const rest = Array.from(
+            { length: 5 },
+            () => ApiHelper.chars[Math.floor(Math.random() * ApiHelper.chars.length)],
+        ).join('');
+        return `${prefix.charAt(0)}-${rest}`;
+    }
 }

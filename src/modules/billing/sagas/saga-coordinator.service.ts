@@ -32,7 +32,7 @@ export class SagaCoordinator {
         const lockKey = `saga:lock:${requestId}`;
         try {
             // NX = only set if doesn't exist, EX = expiry in seconds
-            const result = await this.redis.set(lockKey, Date.now().toString(), 'EX', ttlSeconds, 'NX');
+            const result = await this.redis.set(lockKey, new Date().toISOString(), 'EX', ttlSeconds, 'NX');
             const acquired = result === 'OK';
 
             if (acquired) {

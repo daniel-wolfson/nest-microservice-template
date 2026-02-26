@@ -112,7 +112,7 @@ export class DeliveryStrategyDemoController {
                         key: dto.key,
                         value: JSON.stringify(dto.value),
                         headers: dto.headers,
-                        timestamp: Date.now().toString(),
+                        timestamp: new Date().toISOString(),
                     },
                 ],
             };
@@ -207,7 +207,7 @@ export class DeliveryStrategyDemoController {
                         key: msg.key,
                         value: JSON.stringify(msg.value),
                         headers: msg.headers,
-                        timestamp: Date.now().toString(),
+                        timestamp: new Date().toISOString(),
                     },
                 ],
             }));
@@ -313,7 +313,7 @@ export class DeliveryStrategyDemoController {
                                     messageIndex: i + j,
                                     batchIndex: Math.floor(i / batchSize),
                                 }),
-                                timestamp: Date.now().toString(),
+                                timestamp: new Date().toISOString(),
                             },
                         ],
                     });

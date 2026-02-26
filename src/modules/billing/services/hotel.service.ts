@@ -1,13 +1,14 @@
 import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
-import { HotelReservationDto } from '../dto/hotel-reservation.dto';
 import { HotelReservationResult } from '../dto/hotel-reservation-result.dto';
 import { TravelBookingSagaStateRepository } from '../sagas/travel-booking-saga-state.repository';
 import { SagaCoordinator } from '../sagas/saga-coordinator.service';
 import { TravelBookingSaga } from '../sagas/travel-booking.saga';
 import { TravelBookingNotificationService } from '../webhooks_sse/travel-booking-notification.service';
 import { ApiHelper } from '@/modules/helpers/helper.service';
-import { IReservationService } from './reservation-service.inteface';
-import { SagaStatus } from '../sagas/saga-status.enum';
+import { IReservationService } from './reservation-service.interface';
+import { ReservationStatus } from '../sagas/saga-status.enum';
+import { HotelReservationRequest as HotelReservationRequest } from '../dto/hotel-reservation.-request.dto';
+import { ReservationType } from '../sagas/reservation-types.enum';
 
 const ALL_CONFIRMATION_STEPS = ['flight_confirmed', 'hotel_confirmed', 'hotel_confirmed'];
 
@@ -32,9 +33,9 @@ export class HotelService implements IReservationService {
      * Reserve a hotel room
      * Simulates external API call to hotel booking system
      */
-    async makeReservation(dto: HotelReservationDto): Promise<HotelReservationResult> {
+    async makeReservation(request: HotelReservationRequest): Promise<HotelReservationResult> {
         this.logger.log(
-            `Reserving hotel ${dto.hotelId} for user ${dto.userId} from ${dto.checkInDate} to ${dto.checkOutDate}`,
+            `Reserving hotel ${request.hotelId} for user ${request.userId} from ${request.checkInDate} to ${request.checkOutDate}`,
         );
 
         // Simulate API delay AND Simulate 10% failure rate for testing
@@ -44,14 +45,17 @@ export class HotelService implements IReservationService {
         const confirmationCode = ApiHelper.generateConfirmationCode();
 
         const result: HotelReservationResult = {
+            requestId: request.requestId,
+            userId: request.userId,
             reservationId,
             confirmationCode,
-            status: SagaStatus.PENDING, // Initially PENDING until confirmed by the saga
-            amount: dto.amount,
-            checkInDate: dto.checkInDate,
-            checkOutDate: dto.checkOutDate,
-            hotelId: dto.hotelId,
+            status: ReservationStatus.CONFIRMED,
+            amount: request.amount,
             timestamp: new Date().toISOString(),
+
+            checkInDate: request.checkInDate,
+            checkOutDate: request.checkOutDate,
+            hotelId: request.hotelId,
         };
 
         this.reservations.set(reservationId, result);
@@ -70,15 +74,16 @@ export class HotelService implements IReservationService {
      */
     async confirmReservation(requestId: string, reservationId: string): Promise<void> {
         try {
+            debugger;
             this.logger.log(`🏨 Confirming hotel reservation ${reservationId} for booking ${requestId}`);
 
             const updatedState = await this.sagaStateRepository.saveConfirmedReservation(
-                'hotel',
+                ReservationType.HOTEL,
                 requestId,
                 reservationId,
-                'hotel_confirmed',
+                'HOTEL_CONFIRMED',
             );
-            await this.sagaCoordinator.incrementStepCounter(requestId, 'hotel_confirmed');
+            await this.sagaCoordinator.incrementStepCounter(requestId, 'HOTEL_CONFIRMED');
 
             const completedSteps: string[] = updatedState?.completedSteps ?? [];
             const allConfirmed = ALL_CONFIRMATION_STEPS.every(step => completedSteps.includes(step));
@@ -118,7 +123,7 @@ export class HotelService implements IReservationService {
         }
 
         // Mark as cancelled
-        reservation.status = SagaStatus.PENDING; // In real system, this would be 'cancelled'
+        reservation.status = ReservationStatus.PENDING; // In real system, this would be 'cancelled'
         this.reservations.delete(reservationId);
 
         this.logger.log(`Hotel reservation ${reservationId} cancelled successfully`);

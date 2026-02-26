@@ -1,8 +1,8 @@
 import { IsString, IsNotEmpty, IsDateString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { BaseReservationDto } from './base-reservation.dto';
+import { BaseReservation } from './base-reservation.dto';
 
-export class CarRentalReservationDto extends BaseReservationDto {
+export class CarReservationRequest extends BaseReservation {
     @ApiProperty({ description: 'Pickup location' })
     @IsString()
     @IsNotEmpty()

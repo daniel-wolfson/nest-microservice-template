@@ -15,7 +15,15 @@
             "console": "integratedTerminal",
             "restart": true,
             "runtimeExecutable": "node",
-            "skipFiles": ["<node_internals>/**"],
+            "skipFiles": [
+                "<node_internals>/**",
+                "**/node_modules/**",
+                "${workspaceFolder}/**/*.js",
+                "${workspaceFolder}/node_modules/**",
+                "${workspaceFolder}/node_modules/jest/**",
+                "${workspaceFolder}/node_modules/jest-runtime/**",
+                "${workspaceFolder}/node_modules/jest-cli/**"
+            ],
             "sourceMaps": true,
             "outFiles": ["${workspaceFolder}/dist/**/*.js"],
             "serverReadyAction": {
@@ -38,7 +46,15 @@
             "console": "integratedTerminal",
             "sourceMaps": true,
             "stopOnEntry": false,
-            "skipFiles": ["<node_internals>/**"],
+            "skipFiles": [
+                "<node_internals>/**",
+                "**/node_modules/**",
+                "${workspaceFolder}/**/*.js",
+                "${workspaceFolder}/node_modules/**",
+                "${workspaceFolder}/node_modules/jest/**",
+                "${workspaceFolder}/node_modules/jest-runtime/**",
+                "${workspaceFolder}/node_modules/jest-cli/**"
+            ],
             "serverReadyAction": {
                 "pattern": "Application is running on:",
                 "uriFormat": "http://localhost:3000/api",
@@ -53,6 +69,7 @@
             "console": "integratedTerminal",
             "restart": true,
             "runtimeArgs": ["-r", "ts-node/register", "-r", "tsconfig-paths/register"],
+            "skipFiles": ["<node_internals>/**", "**/node_modules/**", "${workspaceFolder}/**/*.js"],
             "env": {
                 "NODE_ENV": "development"
             }
@@ -70,7 +87,7 @@
             "console": "integratedTerminal",
             "restart": true,
             "runtimeExecutable": "node",
-            "skipFiles": ["<node_internals>/**"],
+            "skipFiles": ["<node_internals>/**", "**/node_modules/**", "${workspaceFolder}/**/*.js"],
             "serverReadyAction": {
                 "pattern": "Nest application successfully started",
                 "uriFormat": "http://localhost:3000/api",

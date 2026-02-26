@@ -87,7 +87,7 @@ export class MyService {
                 {
                     key: 'message-key',
                     value: JSON.stringify(message),
-                    timestamp: Date.now().toString(),
+                    timestamp: new Date().toISOString(),
                 },
             ],
         });

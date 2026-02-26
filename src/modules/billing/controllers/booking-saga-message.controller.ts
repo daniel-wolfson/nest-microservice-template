@@ -11,7 +11,7 @@ import {
 import { FlightService } from '../services/flight.service';
 import { HotelService } from '../services/hotel.service';
 import { CarRentalService } from '../services/car-rental.service';
-import { HotelReservationDto } from '../dto/hotel-reservation.dto';
+import { HotelReservationDto } from '../dto/hotel-reservation.-request.dto';
 import { plainToClass } from 'class-transformer';
 import { validate } from 'class-validator';
 

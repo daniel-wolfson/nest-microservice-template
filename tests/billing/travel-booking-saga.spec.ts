@@ -2,7 +2,7 @@ import { BillingBrokerClient } from '@/modules/billing/brokers/billing-broker-cl
 import { BILLING_BROKER_CLIENT } from '@/modules/billing/brokers/billing-broker.constants';
 import { BookingData } from '@/modules/billing/dto/booking-data.dto';
 import { SagaCoordinator } from '@/modules/billing/sagas/saga-coordinator.service';
-import { SagaStatus } from '@/modules/billing/sagas/saga-status.enum';
+import { ReservationStatus } from '@/modules/billing/sagas/saga-status.enum';
 import { TravelBookingSagaStateRepository } from '@/modules/billing/sagas/travel-booking-saga-state.repository';
 import { TravelBookingSaga } from '@/modules/billing/sagas/travel-booking.saga';
 import { CarRentalService } from '@/modules/billing/services/car-rental.service';
@@ -65,12 +65,12 @@ describe('TravelBookingSaga', () => {
                     useValue: {
                         create: jest.fn().mockResolvedValue({
                             bookingId: 'test-booking-id',
-                            status: SagaStatus.PENDING,
+                            status: ReservationStatus.PENDING,
                         }),
                         findByBookingId: jest.fn().mockResolvedValue({
                             bookingId: 'test-booking-id',
                             userId: 'user-123',
-                            status: SagaStatus.PENDING,
+                            status: ReservationStatus.PENDING,
                             originalRequest: mockTravelBookingDto,
                             // Reservation IDs are pre-saved by event handlers before aggregateResults is called
                             flightReservationId: 'flight-123',
@@ -81,7 +81,7 @@ describe('TravelBookingSaga', () => {
                         findByReservationId: jest.fn().mockResolvedValue(null), // For idempotency check
                         updateState: jest.fn().mockResolvedValue({
                             bookingId: 'test-booking-id',
-                            status: SagaStatus.CONFIRMED,
+                            status: ReservationStatus.CONFIRMED,
                         }),
                         setError: jest.fn().mockResolvedValue(undefined),
                         addCompletedStep: jest.fn().mockResolvedValue(undefined),
@@ -151,7 +151,7 @@ describe('TravelBookingSaga', () => {
                 expect.objectContaining({
                     requestId: result.requestId,
                     userId: mockTravelBookingDto.userId,
-                    status: SagaStatus.PENDING,
+                    status: ReservationStatus.PENDING,
                 }),
                 3600,
             );
@@ -164,7 +164,7 @@ describe('TravelBookingSaga', () => {
                 expect.objectContaining({
                     requestId: result.requestId,
                     userId: mockTravelBookingDto.userId,
-                    status: SagaStatus.PENDING,
+                    status: ReservationStatus.PENDING,
                     totalAmount: mockTravelBookingDto.totalAmount,
                 }),
             );
@@ -179,7 +179,7 @@ describe('TravelBookingSaga', () => {
             );
 
             // Verify result
-            expect(result.status).toBe(SagaStatus.PENDING);
+            expect(result.status).toBe(ReservationStatus.PENDING);
             expect(result.requestId).toBeDefined();
         });
 
@@ -188,7 +188,7 @@ describe('TravelBookingSaga', () => {
 
             const result = await saga.execute(mockTravelBookingDto);
 
-            expect(result.status).toBe(SagaStatus.FAILED);
+            expect(result.status).toBe(ReservationStatus.FAILED);
             expect(result.message).toContain('already in progress');
             expect(sagaStateRepository.create).not.toHaveBeenCalled();
             expect(billingBrokerClient.emit).not.toHaveBeenCalled();
@@ -199,7 +199,7 @@ describe('TravelBookingSaga', () => {
 
             const result = await saga.execute(mockTravelBookingDto);
 
-            expect(result.status).toBe(SagaStatus.FAILED);
+            expect(result.status).toBe(ReservationStatus.FAILED);
             expect(result.message).toContain('Rate limit exceeded');
             expect(sagaStateRepository.setError).toHaveBeenCalledWith(
                 result.requestId, // Uses requestId since bookingId not yet generated
@@ -215,7 +215,7 @@ describe('TravelBookingSaga', () => {
 
             const result = await saga.execute(mockTravelBookingDto);
 
-            expect(result.status).toBe(SagaStatus.FAILED);
+            expect(result.status).toBe(ReservationStatus.FAILED);
             expect(sagaStateRepository.setError).toHaveBeenCalledWith(
                 result.requestId, // Uses bookingId since error happens after it's generated
                 'Broker unavailable',
@@ -235,16 +235,16 @@ describe('TravelBookingSaga', () => {
 
             const result = await saga.execute(mockTravelBookingDto);
 
-            expect(result.status).toBe(SagaStatus.FAILED);
+            expect(result.status).toBe(ReservationStatus.FAILED);
             expect(sagaCoordinator.releaseSagaLock).toHaveBeenCalledWith(result.requestId);
         });
 
         it('should track saga steps in Redis', async () => {
             await saga.execute(mockTravelBookingDto);
 
-            expect(sagaCoordinator.incrementStepCounter).toHaveBeenCalledWith(expect.any(String), 'hotel_requested');
-            expect(sagaCoordinator.incrementStepCounter).toHaveBeenCalledWith(expect.any(String), 'flight_requested');
-            expect(sagaCoordinator.incrementStepCounter).toHaveBeenCalledWith(expect.any(String), 'car_requested');
+            expect(sagaCoordinator.incrementStepCounter).toHaveBeenCalledWith(expect.any(String), 'HOTEL_REQUESTED');
+            expect(sagaCoordinator.incrementStepCounter).toHaveBeenCalledWith(expect.any(String), 'FLIGHT_REQUESTED');
+            expect(sagaCoordinator.incrementStepCounter).toHaveBeenCalledWith(expect.any(String), 'CAR_REQUESTED');
         });
     });
 
@@ -255,7 +255,7 @@ describe('TravelBookingSaga', () => {
             const result = await saga.aggregateResults(mockBookingId);
 
             expect(sagaStateRepository.findByBookingId).toHaveBeenCalledWith(mockBookingId);
-            expect(result.status).toBe('confirmed');
+            expect(result.status).toBe(ReservationStatus.CONFIRMED);
             expect(result.flightReservationId).toBe('flight-123');
             expect(result.hotelReservationId).toBe('hotel-456');
             expect(result.carRentalReservationId).toBe('car-789');
@@ -267,12 +267,12 @@ describe('TravelBookingSaga', () => {
             expect(sagaStateRepository.updateState).toHaveBeenCalledWith(
                 mockBookingId,
                 expect.objectContaining({
-                    status: SagaStatus.CONFIRMED,
+                    status: ReservationStatus.CONFIRMED,
                     completedSteps: expect.arrayContaining([
-                        'flight_confirmed',
-                        'hotel_confirmed',
-                        'hotel_confirmed',
-                        'aggregated',
+                        'FLIGHT_CONFIRMED',
+                        'HOTEL_CONFIRMED',
+                        'CAR_CONFIRMED',
+                        'COMPLETED',
                     ]),
                 }),
             );
@@ -281,7 +281,7 @@ describe('TravelBookingSaga', () => {
         it('should cleanup Redis coordination data after success', async () => {
             await saga.aggregateResults(mockBookingId);
 
-            expect(sagaCoordinator.incrementStepCounter).toHaveBeenCalledWith(mockBookingId, 'aggregated');
+            expect(sagaCoordinator.incrementStepCounter).toHaveBeenCalledWith(mockBookingId, 'COMPLETED');
             expect(sagaCoordinator.removeFromPendingQueue).toHaveBeenCalledWith(mockBookingId);
             expect(sagaCoordinator.cleanup).toHaveBeenCalledWith(mockBookingId);
         });
@@ -296,7 +296,7 @@ describe('TravelBookingSaga', () => {
             jest.spyOn(sagaStateRepository, 'findByBookingId').mockResolvedValue({
                 bookingId: mockBookingId,
                 userId: 'user-123',
-                status: SagaStatus.PENDING,
+                status: ReservationStatus.PENDING,
                 originalRequest: mockTravelBookingDto,
                 flightReservationId: 'flight-123',
                 hotelReservationId: null, // MISSING — handler not yet received
@@ -331,7 +331,7 @@ describe('TravelBookingSaga', () => {
             const result = await saga.execute(mockTravelBookingDto);
 
             // Saga should fail but handle error gracefully
-            expect(result.status).toBe(SagaStatus.FAILED);
+            expect(result.status).toBe(ReservationStatus.FAILED);
         });
 
         it('should handle MongoDB being unavailable', async () => {
@@ -339,7 +339,7 @@ describe('TravelBookingSaga', () => {
 
             const result = await saga.execute(mockTravelBookingDto);
 
-            expect(result.status).toBe(SagaStatus.FAILED);
+            expect(result.status).toBe(ReservationStatus.FAILED);
             expect(result.message).toContain('MongoDB connection failed');
             expect(sagaCoordinator.releaseSagaLock).toHaveBeenCalled(); // Lock always released
         });
@@ -352,7 +352,7 @@ describe('TravelBookingSaga', () => {
             const result = await saga.execute(mockTravelBookingDto);
 
             expect(sagaCoordinator.checkRateLimit).toHaveBeenCalledWith(mockTravelBookingDto.userId, 5);
-            expect(result.status).toBe(SagaStatus.FAILED);
+            expect(result.status).toBe(ReservationStatus.FAILED);
             expect(result.message).toContain('Rate limit exceeded');
             // setError should be called with requestId (since bookingId not yet generated)
             expect(sagaStateRepository.setError).toHaveBeenCalledWith(

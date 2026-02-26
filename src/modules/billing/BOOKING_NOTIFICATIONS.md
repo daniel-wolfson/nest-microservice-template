@@ -158,8 +158,8 @@ await fetch(`/travel-booking/${bookingId}/webhook`, {
 ```typescript
 interface BookingNotification {
     bookingId: string;
-    status: 'confirmed' | 'failed';
-    result?: TravelBookingResponseDto; // present when status = 'confirmed'
+    status: 'CONFIRMED' | 'failed';
+    result?: TravelBookingResponseDto; // present when status = 'CONFIRMED'
     error?: string; // present when status = 'failed'
     timestamp: Date;
 }

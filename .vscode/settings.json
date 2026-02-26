@@ -43,5 +43,16 @@
     "commentTranslate.source": "Copilot",
     "jest.autoRun": "off",
     "jest.jestCommandLine": "yarn test --",
-    "debug.javascript.autoAttachFilter": "disabled"
+    "debug.javascript.autoAttachFilter": "disabled",
+    "debug.javascript.terminalOptions": {
+        "skipFiles": [
+            "<node_internals>/**",
+            "**/node_modules/**",
+            "${workspaceFolder}/**/*.js",
+            "${workspaceFolder}/node_modules/**",
+            "${workspaceFolder}/node_modules/jest/**",
+            "${workspaceFolder}/node_modules/jest-runtime/**",
+            "${workspaceFolder}/node_modules/jest-cli/**"
+        ]
+    }
 }

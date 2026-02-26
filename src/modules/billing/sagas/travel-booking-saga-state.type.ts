@@ -1,4 +1,4 @@
-import { SagaStatus } from './saga-status.enum';
+import { ReservationStatus } from './saga-status.enum';
 import { Prop } from '@nestjs/mongoose';
 
 /**
@@ -47,7 +47,7 @@ export class TravelBookingSagaRedisState {
     timestamp: number;
 
     @Prop({ required: true })
-    status: SagaStatus;
+    status: ReservationStatus;
 
     @Prop({ required: true, default: null })
     totalAmount: number | null;

@@ -31,7 +31,7 @@ export class KafkaController {
                         key: dto.key,
                         value: JSON.stringify(dto.value),
                         headers: dto.headers,
-                        timestamp: Date.now().toString(),
+                        timestamp: new Date().toISOString(),
                     },
                 ],
             });
@@ -74,7 +74,7 @@ export class KafkaController {
                         key: msg.key,
                         value: JSON.stringify(msg.value),
                         headers: msg.headers,
-                        timestamp: Date.now().toString(),
+                        timestamp: new Date().toISOString(),
                     },
                 ],
             }));
