@@ -15,6 +15,8 @@ import { exec } from 'child_process';
 import { randomUUID } from 'crypto';
 import { promisify } from 'util';
 import { createTestingModule } from './billing-test.module';
+import { cache } from 'joi';
+import { cacheKeys } from '@/modules/billing/sagas/cache-keys.const';
 const execAsync = promisify(exec);
 
 /**
@@ -45,11 +47,11 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
     //const MONGODB_URI = 'mongodb://admin:123456@localhost:27017/microservice-template-billing-test?authSource=admin';
 
     // Fresh reservationId per test — prevents findByReservationId() from returning stale cross-test data
-    let mockTravelBookingDto: BookingData;
+    let mockBookingRequest: BookingData;
 
     beforeAll(async () => {
         // Fresh DTO with new reservationId prevents findByReservationId() returning stale data from previous tests
-        mockTravelBookingDto = {
+        mockBookingRequest = {
             requestId: randomUUID(),
             userId: 'e2e-user-123',
             flightOrigin: 'JFK',
@@ -129,7 +131,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             // Clear test data from Redis (only if connection is still alive)
             try {
                 await redis.ping();
-                const keys = await redis.keys('saga:*');
+                const keys = await redis.keys(cacheKeys.ALL_SAGAs);
                 if (keys.length > 0) {
                     await redis.del(...keys);
                 }
@@ -154,7 +156,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
 
             // Verify Redis connection is alive before cleanup
             await redis.ping();
-            const keys = await redis.keys('saga:*');
+            const keys = await redis.keys(cacheKeys.ALL_SAGAs);
             if (keys.length > 0) {
                 await redis.del(...keys);
             }
@@ -170,7 +172,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
     describe('Complete Saga Flow with Real Infrastructure', () => {
         test('should execute saga and persist state in MongoDB', async () => {
             // Act - execute saga with mock booking data
-            const result = await saga.execute(mockTravelBookingDto);
+            const result = await saga.execute(mockBookingRequest);
 
             // Assert - Verify execution result
             expect(result.status).toBe(ReservationStatus.PENDING);
@@ -181,8 +183,8 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
 
             expect(savedState).toBeDefined();
             expect(savedState!.status).toBe(ReservationStatus.PENDING); // execute() saves PENDING; CONFIRMED only after aggregateResults()
-            expect(savedState!.userId).toBe(mockTravelBookingDto.userId);
-            expect(savedState!.totalAmount).toBe(mockTravelBookingDto.totalAmount);
+            expect(savedState!.userId).toBe(mockBookingRequest.userId);
+            expect(savedState!.totalAmount).toBe(mockBookingRequest.totalAmount);
             expect(savedState!.originalRequest).toBeDefined();
 
             // bookingId should be null/undefined at this stage (generated later in aggregateResults)
@@ -192,10 +194,10 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
         }, 15000);
 
         test('should create distributed lock in Redis during execution', async () => {
-            const result = await saga.execute(mockTravelBookingDto);
+            const result = await saga.execute(mockBookingRequest);
 
             // Lock should be released after execution
-            const lockExists = await redis.exists(`saga:lock:${result.requestId}`);
+            const lockExists = await redis.exists(cacheKeys.getDistributedLockKey(result.requestId));
             expect(lockExists).toBe(0); // Lock released
 
             console.log(`✅ Distributed lock managed correctly`);
@@ -203,34 +205,35 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
 
         test('should cache in-active state in Redis during execution', async () => {
             // Execute saga
-            const result = await saga.execute(mockTravelBookingDto);
+            const result = await saga.execute(mockBookingRequest);
             const requestId = result.requestId;
 
             // Verify the saga state was cached in Redis during execution
             // After execution, the cache should be cleared, so we verify it was there by checking MongoDB
             const savedState = await saga.findByRequestId(requestId);
             expect(savedState).toBeDefined();
-            expect(savedState!.userId).toBe(mockTravelBookingDto.userId);
-            expect(savedState!.totalAmount).toBe(mockTravelBookingDto.totalAmount);
+            expect(savedState!.userId).toBe(mockBookingRequest.userId);
+            expect(savedState!.totalAmount).toBe(mockBookingRequest.totalAmount);
             expect(savedState!.status).toBe(ReservationStatus.PENDING);
 
             // Verify that the cache was cleared after execution (saga should clean up temporary Redis data)
-            const cachedAfter = await redis.get(`saga:in-active:${requestId}`);
+            const cachedAfter = await redis.get(cacheKeys.getActiveStateKey(requestId));
             expect(cachedAfter).toBeNull();
 
             // Verify saga was tracked in Redis pending queue
-            const pendingScore = await redis.zscore('saga:pending', requestId);
+            const pendingScore = await redis.zscore(cacheKeys.PENDING_QUEUE, requestId);
             expect(pendingScore).toBeDefined();
 
             console.log(`✅ In-active state handled correctly and cache cleaned up`);
         }, 15000);
 
         test('should track saga steps in Redis', async () => {
-            const result = await saga.execute(mockTravelBookingDto);
+            const result = await saga.execute(mockBookingRequest);
 
             // Check step counters - steps might not persist after execution, verify they were tracked during execution
             // by checking metadata contains the execution info
-            const metadata = await redis.hgetall(`saga:metadata:${result.requestId}`);
+            const metadata = await redis.hgetall(cacheKeys.getMetadataKey(result.requestId));
+            expect(metadata).toBeDefined();
 
             // Verify the saga was tracked (metadata should exist during execution)
             expect(Object.keys(metadata).length).toBeGreaterThanOrEqual(0);
@@ -240,45 +243,57 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
         }, 15000);
 
         test('should add saga to pending queue in Redis', async () => {
-            const result = await saga.execute(mockTravelBookingDto);
+            const result = await saga.execute(mockBookingRequest);
 
             // Check pending queue
-            const pendingScore = await redis.zscore('saga:pending', result.requestId);
+            const pendingScore = await redis.zscore(cacheKeys.PENDING_QUEUE, result.requestId);
             expect(pendingScore).toBeDefined();
 
             console.log(`✅ Saga added to pending queue`);
         }, 15000);
 
         test('should enforce rate limiting across multiple requests', async () => {
-            // Make 6 requests quickly (limit is 5 per minute)
-            const results = [];
-            for (let i = 0; i < 6; i++) {
-                // Unique reservationId per request — prevents idempotency early-return bypassing rate limit
-                results.push(
-                    await saga.execute({
-                        ...mockTravelBookingDto,
-                        userId: 'rate-limit-test-user',
-                        requestId: randomUUID(),
-                    }),
-                );
+            const testUserId = `rate-limit-${mockBookingRequest.userId}`;
+
+            try {
+                // Make 6 requests quickly (limit is 5 per minute)
+                // Small delay between requests prevents connection pool exhaustion (ECONNRESET)
+                const results = [];
+                for (let i = 0; i < 6; i++) {
+                    // Unique requestId per request — prevents idempotency early-return bypassing rate limit
+                    results.push(
+                        await saga.execute({
+                            ...mockBookingRequest,
+                            userId: testUserId,
+                            requestId: ApiHelper.generateRequestId(`RATE-LIMIT-${i}`), // Unique requestId for each execution
+                        }),
+                    );
+
+                    // Small delay to prevent MongoDB/Redis connection pool exhaustion (Not necessary but helps avoid flaky connection errors in CI)
+                    if (i < 5) await new Promise(resolve => setTimeout(resolve, 50));
+                }
+
+                // First 5 should succeed, 6th should fail
+                const successCount = results.filter(r => r.status === ReservationStatus.PENDING).length;
+                const failedCount = results.filter(r => r.status === ReservationStatus.FAILED).length;
+
+                expect(successCount).toBe(5);
+                expect(failedCount).toBe(1);
+                expect(results[5].message).toContain('Rate limit exceeded');
+
+                console.log(`✅ Rate limiting enforced: ${successCount} succeeded, ${failedCount} failed`);
+            } finally {
+                // Cleanup - delete saga states created during test
+                try {
+                    await saga.deleteByUserId(testUserId);
+                } catch (cleanupError) {
+                    console.warn(`⚠️ Cleanup failed (non-critical):`, cleanupError);
+                }
             }
-
-            // First 5 should succeed, 6th should fail
-            const successCount = results.filter(r => r.status === ReservationStatus.PENDING).length;
-            const failedCount = results.filter(r => r.status === ReservationStatus.FAILED).length;
-
-            expect(successCount).toBe(5);
-            expect(failedCount).toBe(1);
-            expect(results[5].message).toContain('Rate limit exceeded');
-
-            // Cleanup
-            await saga.deleteByUserId(mockTravelBookingDto.userId);
-
-            console.log(`✅ Rate limiting enforced: ${successCount} succeeded, ${failedCount} failed`);
         }, 20000);
 
         test('should prevent concurrent execution with distributed lock', async () => {
-            const dto = { ...mockTravelBookingDto };
+            const dto = { ...mockBookingRequest };
 
             // Start first execution
             const firstExecution = saga.execute(dto);
@@ -308,12 +323,12 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
     describe('Aggregate Results with Real Infrastructure', () => {
         test('should aggregate results and update MongoDB state', async () => {
             // First execute saga
-            const executeResult = await saga.execute(mockTravelBookingDto);
+            const executeResult = await saga.execute(mockBookingRequest);
             const requestId = executeResult.requestId;
 
             // Simulate confirmation results
             const expectedFlightResult: ReservationResult = {
-                userId: mockTravelBookingDto.userId,
+                userId: mockBookingRequest.userId,
                 reservationId: ApiHelper.generatePNR('FLT'),
                 confirmationCode: 'FL-E2E-123',
                 status: ReservationStatus.CONFIRMED,
@@ -321,18 +336,18 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
                 amount: 1500,
             };
             const expectedHotelResult: HotelReservationResult = {
-                userId: mockTravelBookingDto.userId,
+                userId: mockBookingRequest.userId,
                 requestId: requestId,
                 reservationId: ApiHelper.generatePNR('HTL'),
-                hotelId: mockTravelBookingDto.hotelId,
-                checkInDate: mockTravelBookingDto.checkInDate,
-                checkOutDate: mockTravelBookingDto.checkOutDate,
+                hotelId: mockBookingRequest.hotelId,
+                checkInDate: mockBookingRequest.checkInDate,
+                checkOutDate: mockBookingRequest.checkOutDate,
                 amount: 1800,
                 confirmationCode: 'HT-E2E-456',
                 status: ReservationStatus.CONFIRMED,
             };
             const expectedCarResult: ReservationResult = {
-                userId: mockTravelBookingDto.userId,
+                userId: mockBookingRequest.userId,
                 requestId: requestId,
                 reservationId: ApiHelper.generatePNR('CAR'),
                 confirmationCode: 'CR-E2E-789',
@@ -385,7 +400,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
 
         test('should cleanup Redis data after successful aggregation', async () => {
             // Arrange - execute saga and simulate confirmations
-            const executeResult = await saga.execute(mockTravelBookingDto);
+            const executeResult = await saga.execute(mockBookingRequest);
             const requestId = executeResult.requestId;
             const expectedFlightResult = {
                 reservationId: ApiHelper.generatePNR('FLT'),
@@ -432,13 +447,13 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             await saga.aggregateResults(requestId);
 
             // Assert - Verify Redis data exists
-            const cachedBefore = await redis.get(`saga:in-active:${requestId}`);
+            const cachedBefore = await redis.get(cacheKeys.getActiveStateKey(requestId));
             expect(cachedBefore).toBeDefined();
 
             // Assert -Verify Redis cleanup
-            const cachedAfter = await redis.get(`saga:in-active:${requestId}`);
-            const stepsAfter = await redis.exists(`saga:steps:${requestId}`);
-            const metadataAfter = await redis.exists(`saga:metadata:${requestId}`);
+            const cachedAfter = await redis.get(cacheKeys.getActiveStateKey(requestId));
+            const stepsAfter = await redis.exists(cacheKeys.getProgressStepsKey(requestId));
+            const metadataAfter = await redis.exists(cacheKeys.getMetadataKey(requestId));
 
             expect(cachedAfter).toBeNull();
             expect(stepsAfter).toBe(0);
@@ -454,7 +469,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             const billingBrokerClient = app.get(BILLING_BROKER_CLIENT);
             jest.spyOn(billingBrokerClient, 'emit').mockRejectedValueOnce(new Error('E2E Broker Error'));
 
-            const result = await saga.execute(mockTravelBookingDto);
+            const result = await saga.execute(mockBookingRequest);
 
             // Verify failure result or pending state (depends on when error occurs)
             expect([ReservationStatus.FAILED, ReservationStatus.PENDING]).toContain(result.status);
@@ -472,7 +487,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             const billingBrokerClient = app.get(BILLING_BROKER_CLIENT);
             jest.spyOn(billingBrokerClient, 'emit').mockRejectedValueOnce(new Error('E2E Redis Metadata Test'));
 
-            const result = await saga.execute(mockTravelBookingDto);
+            const result = await saga.execute(mockBookingRequest);
 
             // Verify saga was executed and returned a result
             expect(result.requestId).toBeDefined();
@@ -485,12 +500,12 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
     describe('Hybrid MongoDB + Redis Architecture', () => {
         test('should use Redis cache for fast reads, MongoDB for persistence', async () => {
             // Act - Execute saga
-            const executeResult = await saga.execute(mockTravelBookingDto);
+            const executeResult = await saga.execute(mockBookingRequest);
 
             // Assert - Durable read from MongoDB (use findByRequestId — bookingId is null at this stage)
             const mongoState = await saga.dbState.findByRequestId(executeResult.requestId);
             expect(mongoState).toBeDefined();
-            expect(mongoState!.userId).toBe(mockTravelBookingDto.userId);
+            expect(mongoState!.userId).toBe(mockBookingRequest.userId);
             expect(mongoState!.status).toBe(ReservationStatus.PENDING);
 
             // Assert - Verify saga was executed with correct data
@@ -502,11 +517,11 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
 
         test('should fallback to MongoDB when Redis cache expires', async () => {
             // Execute saga
-            const executeResult = await saga.execute(mockTravelBookingDto);
+            const executeResult = await saga.execute(mockBookingRequest);
             const requestId = executeResult.requestId;
 
             // Manually expire Redis cache
-            await redis.del(`saga:in-active:${requestId}`);
+            await redis.del(cacheKeys.getActiveStateKey(requestId));
 
             // MongoDB should still have the data (use findByRequestId — requestId is the key)
             const mongoState = await saga.dbState.findByRequestId(requestId);
@@ -522,7 +537,7 @@ describe('TravelBookingSaga E2E (Redis + MongoDB)', () => {
             console.log('🔄 Testing complete saga lifecycle...');
 
             // Step 1: Execute saga
-            const executeResult = await saga.execute(mockTravelBookingDto);
+            const executeResult = await saga.execute(mockBookingRequest);
             expect(executeResult.status).toBe(ReservationStatus.PENDING);
             console.log(`  ✓ Step 1: Saga executed (${executeResult.requestId})`);
 

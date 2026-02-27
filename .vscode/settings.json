@@ -9,9 +9,9 @@
     "terminal.integrated.fontSize": 14,
     "[typescript]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode",
-        "editor.rulers": [120],
+        "editor.rulers": [130],
         "editor.wordWrap": "bounded",
-        "editor.wordWrapColumn": 120
+        "editor.wordWrapColumn": 130
     },
     "cSpell.words": [
         "acks",

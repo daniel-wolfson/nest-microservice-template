@@ -24,7 +24,7 @@ export class ApiHelper {
      * @example
      * helperService.generateId('FLT') // => "FLT-1708473824567-abc123de"
      */
-    static generateId(prefix: string): string {
+    static generateRequestId(prefix: string): string {
         return `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     }
 

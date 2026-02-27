@@ -13,6 +13,7 @@ import { HotelService } from '@/modules/billing/services/hotel.service';
 import { TravelBookingNotificationService } from '@/modules/billing/webhooks_sse/travel-booking-notification.service';
 import { EventBus } from '@nestjs/cqrs';
 import { Test, TestingModule } from '@nestjs/testing';
+import { timeStamp } from 'console';
 import { randomUUID } from 'crypto';
 import { request } from 'http';
 
@@ -106,6 +107,7 @@ describe('TravelBookingSaga', () => {
                         acquireSagaLock: jest.fn().mockResolvedValue(true),
                         releaseSagaLock: jest.fn().mockResolvedValue(undefined),
                         checkRateLimit: jest.fn().mockResolvedValue(true),
+                        setActiveSagaState: jest.fn().mockResolvedValue(undefined),
                         cacheActiveSagaState: jest.fn().mockResolvedValue(undefined),
                         getActiveSagaState: jest.fn().mockResolvedValue(null),
                         clearActiveSagaState: jest.fn().mockResolvedValue(undefined),
@@ -142,24 +144,25 @@ describe('TravelBookingSaga', () => {
     });
 
     describe('Hybrid MongoDB + Redis Flow', () => {
-        it('should execute saga with distributed lock, rate limit, and state persistence', async () => {
+        test('should execute saga with distributed lock, rate limit, and state persistence', async () => {
             const result = await saga.execute(mockTravelBookingDto);
 
             // Verify Redis coordination
-            expect(sagaCoordinator.acquireSagaLock).toHaveBeenCalledWith(result.requestId, 300);
-            expect(sagaCoordinator.checkRateLimit).toHaveBeenCalledWith(mockTravelBookingDto.userId, 5);
-            expect(sagaCoordinator.cacheActiveSagaState).toHaveBeenCalledWith(
+            expect(saga.coordinator.acquireSagaLock).toHaveBeenCalledWith(result.requestId, 300);
+            expect(saga.coordinator.checkRateLimit).toHaveBeenCalledWith(mockTravelBookingDto.userId, 5);
+            expect(saga.coordinator.setActiveSagaState).toHaveBeenCalledWith(
                 result.requestId,
                 expect.objectContaining({
                     requestId: result.requestId,
                     userId: mockTravelBookingDto.userId,
                     status: ReservationStatus.PENDING,
+                    totalAmount: mockTravelBookingDto.totalAmount,
                 }),
                 3600,
             );
-            expect(sagaCoordinator.addToPendingQueue).toHaveBeenCalledWith(result.requestId);
-            expect(sagaCoordinator.incrementStepCounter).toHaveBeenCalledTimes(3);
-            expect(sagaCoordinator.releaseSagaLock).toHaveBeenCalledWith(result.requestId);
+            expect(saga.coordinator.addToPendingQueue).toHaveBeenCalledWith(result.requestId);
+            expect(saga.coordinator.incrementStepCounter).toHaveBeenCalledTimes(3);
+            expect(saga.coordinator.releaseSagaLock).toHaveBeenCalledWith(result.requestId);
 
             // Verify MongoDB persistence
             expect(sagaStateRepository.create).toHaveBeenCalledWith(
@@ -182,7 +185,7 @@ describe('TravelBookingSaga', () => {
             expect(result.requestId).toBeDefined();
         });
 
-        it('should fail if distributed lock cannot be acquired', async () => {
+        test('should fail if distributed lock cannot be acquired', async () => {
             jest.spyOn(sagaCoordinator, 'acquireSagaLock').mockResolvedValue(false);
 
             const result = await saga.execute(mockTravelBookingDto);
@@ -193,7 +196,7 @@ describe('TravelBookingSaga', () => {
             expect(billingBrokerClient.emit).not.toHaveBeenCalled();
         });
 
-        it('should fail if rate limit exceeded', async () => {
+        test('should fail if rate limit exceeded', async () => {
             jest.spyOn(sagaCoordinator, 'checkRateLimit').mockResolvedValue(false);
 
             const result = await saga.execute(mockTravelBookingDto);
@@ -208,7 +211,7 @@ describe('TravelBookingSaga', () => {
             expect(sagaCoordinator.releaseSagaLock).toHaveBeenCalledWith(result.requestId);
         });
 
-        it('should save error to MongoDB and Redis metadata on failure', async () => {
+        test('should save error to MongoDB and Redis metadata on failure', async () => {
             const error = new Error('Broker unavailable');
             jest.spyOn(billingBrokerClient, 'emit').mockRejectedValue(error);
 
@@ -229,7 +232,7 @@ describe('TravelBookingSaga', () => {
             expect(sagaCoordinator.releaseSagaLock).toHaveBeenCalledWith(result.requestId);
         });
 
-        it('should always release lock even if error occurs', async () => {
+        test('should always release lock even if error occurs', async () => {
             jest.spyOn(sagaStateRepository, 'create').mockRejectedValue(new Error('MongoDB down'));
 
             const result = await saga.execute(mockTravelBookingDto);
@@ -238,7 +241,7 @@ describe('TravelBookingSaga', () => {
             expect(sagaCoordinator.releaseSagaLock).toHaveBeenCalledWith(result.requestId);
         });
 
-        it('should track saga steps in Redis', async () => {
+        test('should track saga steps in Redis', async () => {
             await saga.execute(mockTravelBookingDto);
 
             expect(sagaCoordinator.incrementStepCounter).toHaveBeenCalledWith(expect.any(String), 'HOTEL_REQUESTED');
@@ -337,7 +340,7 @@ describe('TravelBookingSaga', () => {
     });
 
     describe('Redis Coordination Edge Cases', () => {
-        it('should handle Redis being unavailable gracefully', async () => {
+        test('should handle Redis being unavailable gracefully', async () => {
             jest.spyOn(sagaCoordinator, 'acquireSagaLock').mockRejectedValue(new Error('Redis connection failed'));
 
             const result = await saga.execute(mockTravelBookingDto);
@@ -346,7 +349,7 @@ describe('TravelBookingSaga', () => {
             expect(result.status).toBe(ReservationStatus.FAILED);
         });
 
-        it('should handle MongoDB being unavailable', async () => {
+        test('should handle MongoDB being unavailable', async () => {
             jest.spyOn(sagaStateRepository, 'create').mockRejectedValue(new Error('MongoDB connection failed'));
 
             const result = await saga.execute(mockTravelBookingDto);
@@ -358,7 +361,7 @@ describe('TravelBookingSaga', () => {
     });
 
     describe('Rate Limiting', () => {
-        it('should enforce rate limit of 5 bookings per minute per user', async () => {
+        test('should enforce rate limit of 5 bookings per minute per user', async () => {
             jest.spyOn(sagaCoordinator, 'checkRateLimit').mockResolvedValue(false);
 
             const result = await saga.execute(mockTravelBookingDto);

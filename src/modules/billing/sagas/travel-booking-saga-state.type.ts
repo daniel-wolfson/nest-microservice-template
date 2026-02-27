@@ -44,7 +44,7 @@ export class TravelBookingSagaRedisState {
     metadata: any;
 
     @Prop({ required: true })
-    timestamp: number;
+    timestamp: string;
 
     @Prop({ required: true })
     status: ReservationStatus;

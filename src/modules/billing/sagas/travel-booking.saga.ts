@@ -125,7 +125,7 @@ export class TravelBookingSaga {
             requestId: this.requestId,
             bookingId: null,
             originalRequest: request,
-            timestamp: new Date().getTime(),
+            timestamp: new Date().toISOString(),
             status: null,
             message: null,
         };
@@ -153,7 +153,7 @@ export class TravelBookingSaga {
                     requestId: this.requestId,
                     bookingId: activeSagaState.bookingId || null,
                     originalRequest: activeSagaState.metadata || request,
-                    timestamp: activeSagaState.timestamp || new Date().getTime(),
+                    timestamp: activeSagaState.timestamp || new Date().toISOString(),
                     status: activeSagaState.status || ReservationStatus.PENDING,
                     message:
                         activeSagaState.message ||
@@ -187,20 +187,20 @@ export class TravelBookingSaga {
                 status: ReservationStatus.PENDING,
                 originalRequest: request as any,
                 totalAmount: request.totalAmount,
-                timestamp: Date.now(),
+                timestamp: new Date().toISOString(),
                 completedSteps: [],
             });
             this.logger.log(`✅ Saga state saved to MongoDB with requestId: ${this.requestId}`);
 
             // saga-execute-step 7: REDIS. Cache in-active state for fast reads (keyed by idempotencyKey)
-            await this.coordinator.cacheActiveSagaState(
+            await this.coordinator.setActiveSagaState(
                 this.requestId,
                 {
                     bookingId: null, // ✅ Will be set later in aggregateResults()
                     requestId: this.requestId,
                     userId: request.userId,
                     status: ReservationStatus.PENDING,
-                    timestamp: Date.now(),
+                    timestamp: new Date().toISOString(),
                     totalAmount: request.totalAmount,
                     metadata: request,
                 },

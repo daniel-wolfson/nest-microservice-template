@@ -48,8 +48,8 @@ export class TravelBookingSagaState {
     @Prop({ type: Object })
     metadata?: Record<string, any>;
 
-    @Prop({ type: Number })
-    timestamp: number;
+    @Prop({ type: String })
+    timestamp: string;
 
     @Prop({ type: Date, default: Date.now })
     createdAt?: Date;

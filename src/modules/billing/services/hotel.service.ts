@@ -41,7 +41,7 @@ export class HotelService implements IReservationService {
         // Simulate API delay AND Simulate 10% failure rate for testing
         //await ApiHelper.simulateDelayOrRandomError(1200, 0.1);
 
-        const reservationId = ApiHelper.generateId('HTL');
+        const reservationId = ApiHelper.generateRequestId('HTL');
         const confirmationCode = ApiHelper.generateConfirmationCode();
 
         const result: HotelReservationResult = {

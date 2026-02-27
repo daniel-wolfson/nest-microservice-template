@@ -5,6 +5,6 @@ export type TravelBookingExecutionResult = {
     bookingId?: string | null;
     originalRequest: any;
     status: ReservationStatus;
-    timestamp: number;
+    timestamp: string;
     message?: string | null;
 };

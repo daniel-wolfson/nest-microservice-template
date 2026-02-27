@@ -40,7 +40,7 @@ export class CarRentalService implements IReservationService {
         // Simulate API delay AND Simulate 30% failure rate for testing compensation
         await ApiHelper.simulateDelayOrRandomError(1500, 0.3);
 
-        const reservationId = ApiHelper.generateId('CAR');
+        const reservationId = ApiHelper.generateRequestId('CAR');
         const confirmationCode = ApiHelper.generateConfirmationCode();
 
         const result: ReservationResult = {

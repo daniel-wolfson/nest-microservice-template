@@ -17,7 +17,7 @@ export class TravelBookingSagaStateRepository {
     /**
      * Create new saga state
      */
-    async create(sagaState: Partial<TravelBookingSagaState>): Promise<TravelBookingSagaStateDocument> {
+    async create(sagaState: TravelBookingSagaState): Promise<TravelBookingSagaStateDocument> {
         this.logger.log(`Creating saga state for booking: ${sagaState.bookingId}`);
         const createdState = new this.sagaDbState(sagaState);
         return await createdState.save();

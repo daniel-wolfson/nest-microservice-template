@@ -11,9 +11,9 @@ import {
 import { FlightService } from '../services/flight.service';
 import { HotelService } from '../services/hotel.service';
 import { CarRentalService } from '../services/car-rental.service';
-import { HotelReservationDto } from '../dto/hotel-reservation.-request.dto';
 import { plainToClass } from 'class-transformer';
 import { validate } from 'class-validator';
+import { HotelReservationRequest } from '../dto/hotel-reservation.-request.dto';
 
 @Controller()
 export class BookingSagaMessageController {
@@ -38,7 +38,7 @@ export class BookingSagaMessageController {
             channel.ack(originalMsg);
 
             // Validate DTO
-            const hotelDto = plainToClass(HotelReservationDto, {
+            const hotelDto = plainToClass(HotelReservationRequest, {
                 userId: data.userId,
                 hotelId: data.hotelId,
                 checkInDate: data.checkInDate,

@@ -38,7 +38,7 @@ export class FlightService implements IReservationService {
         // Simulate API delay AND Simulate 10% failure rate for testing
         await ApiHelper.simulateDelayOrRandomError(1000, 0.1);
 
-        const reservationId = ApiHelper.generateId('FLT');
+        const reservationId = ApiHelper.generateRequestId('FLT');
         const confirmationCode = ApiHelper.generateConfirmationCode();
 
         const result: ReservationResult = {
